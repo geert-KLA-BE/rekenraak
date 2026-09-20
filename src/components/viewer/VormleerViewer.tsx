@@ -647,7 +647,7 @@ export default function VormleerViewer({ block, showSolutions }: Props) {
 
     // ── EIGENSCHAPPEN: tick-table — figure column + property columns ──────────
     // Column count varies with the ticked concepts (up to 6 for driehoeken): fixed 130px
-    // columns need up to 900px, well past the full 688px sheet column (BUGS.md). Both the
+    // columns need up to 900px, well past the full 642px sheet column (BUGS.md). Both the
     // figure and property column widths are read off the current cell width instead, and
     // when even a narrow column would still overflow, the columns split across stacked
     // mini-tables (each repeating the figure column) rather than clip off the sheet.

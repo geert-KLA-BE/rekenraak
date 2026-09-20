@@ -96,14 +96,13 @@
   position: absolute; top: -20px; left: 2px;
   font-size: 11px; color: var(--text-muted); user-select: none;
 }
-/* SYNC: the screen paddings are the PRINT paddings at 96dpi (8mm / 4mm / 8mm / 14mm),
+/* SYNC: the screen paddings are the PRINT paddings at 96dpi (20mm / 4mm / 20mm / 20mm),
    so the screen body is exactly as tall as the printed one. When they differed, content
-   that fitted on screen ran under the footer on paper. The top margin was 16mm until
-   2026-09-12 and 12mm until 2026-09-13; 8mm (30px) is as low as it goes — printer no-ink
-   zones are 4-5mm and the dialog's own margin adds on top for anyone not on "Geen". */
-.page-sheet-head { padding: 30px 53px 0; flex: none; position: relative; }
+   that fitted on screen ran under the footer on paper. 20mm all round is a normal printed-
+   document margin; it was 8mm top/foot and 14mm sides until 2026-09-20. */
+.page-sheet-head { padding: 76px 76px 0; flex: none; position: relative; }
 .page-sheet-body {
-  flex: 1; min-height: 0; padding: 0 53px; position: relative;
+  flex: 1; min-height: 0; padding: 0 76px; position: relative;
   /* Clipped on screen exactly as it will be on paper, so what you see is what prints. */
   overflow: hidden;
 }
@@ -112,7 +111,7 @@
    inside a page flows any more, which is also why screen == print: the browser never gets
    to make a layout decision of its own. */
 .page-sheet-canvas { position: relative; height: 100%; }
-.page-sheet-foot { flex: none; padding: 15px 53px 30px; position: relative; }
+.page-sheet-foot { flex: none; padding: 15px 76px 76px; position: relative; }
 
 /* Page-design images (EditableSheetImage.tsx) — free-standing, positioned/resized/rotated
    by hand. Inert by default so they never steal clicks meant for the header/footer/body
@@ -173,7 +172,7 @@
 /* Budgeted heights can be wrong; when they are, the page says so instead of clipping. */
 .page-sheet.page-overflow { outline: 2px solid var(--danger); outline-offset: 0; }
 .page-sheet-warn {
-  position: absolute; left: 53px; right: 53px; bottom: 6px; z-index: 6;
+  position: absolute; left: 76px; right: 76px; bottom: 6px; z-index: 6;
   display: flex; align-items: center; gap: var(--sp-2);
   padding: 6px 10px; border-radius: var(--radius-sm);
   background: var(--danger); color: #fff;
@@ -197,7 +196,7 @@
   /* Out of the grid flow on purpose: as a grid row it added its own height to the body's
      scrollHeight, which the overflow banner reads — a page with room got "loopt 141px
      over" the moment the hint appeared. */
-  position: absolute; left: 53px; right: 53px; bottom: 6px; z-index: 5;
+  position: absolute; left: 76px; right: 76px; bottom: 6px; z-index: 5;
   display: flex; align-items: center; justify-content: center; gap: var(--sp-2);
   padding: 6px 10px; border-radius: var(--radius-sm);
   background: var(--accent-soft); color: var(--accent);
@@ -834,13 +833,13 @@ textarea:focus-visible,
   }
   /* No trailing blank page after the last one. */
   .page-sheet:last-of-type { page-break-after: auto; break-after: auto; }
-  /* 16mm side margins live here now, not in @page — the dialog's margin setting silently
-     overrides @page, so the margins have to come from the content box. */
-  /* Side margins 14mm (15mm to the ink); the top is 8mm. SYNC: .page-sheet-head above
-     and the BODY_HEIGHT_PX derivation in blockLayout.ts. */
-  .page-sheet-head { padding: 8mm 14mm 0 !important; }
-  .page-sheet-body { padding: 0 14mm !important; }
-  .page-sheet-foot { padding: 4mm 14mm 8mm !important; }
+  /* Margins live here, not in @page — the dialog's margin setting silently overrides
+     @page, so the margins have to come from the content box. */
+  /* 20mm margins all round (normal printed-document margin). SYNC: .page-sheet-head
+     above and the BODY_HEIGHT_PX derivation in blockLayout.ts. */
+  .page-sheet-head { padding: 20mm 20mm 0 !important; }
+  .page-sheet-body { padding: 0 20mm !important; }
+  .page-sheet-foot { padding: 4mm 20mm 20mm !important; }
   .page-sheet-tag, .page-sheet-warn { display: none !important; }
 
   /* Sets may split across pages freely. */

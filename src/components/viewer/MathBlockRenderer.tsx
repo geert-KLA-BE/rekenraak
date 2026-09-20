@@ -131,7 +131,7 @@ export default function MathBlockRenderer({ block, showSolutions }: Props) {
     const A4_CONTENT_PX = useBlockWidth();
     // The math token in px, so the column widths below follow the Lettergrootte slider.
     const sheetPx = useSheetSizePx('math');
-    // Third sizing tier. A quarter-width cell is 163px (688 − 3×12 gap, ÷4), and the
+    // Third sizing tier. A quarter-width cell is 151px (642 − 3×12 gap, ÷4), and the
     // "narrow" tier below still spends ~60px on column boxes and operator gaps that the
     // writing line needs. Below 200px everything that is air rather than ink gives way:
     // no column floors, 6px gaps, a blank sized to the answer, one exercise per row.

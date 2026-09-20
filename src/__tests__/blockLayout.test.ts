@@ -22,9 +22,9 @@ describe('minWidthUnits — fallback (no measurement)', () => {
         expect(minWidthUnits(block)).toBe(4);
     });
 
-    test('hoofdrekenen at 100 fits a quarter', () => {
+    test('hoofdrekenen at 100 needs a half — the narrower 20mm-margin quarter no longer fits it', () => {
         const block = makeBlock('hr-std-optellen', { constraints: { numberType: 'natural', maxGetal: 100 } });
-        expect(minWidthUnits(block)).toBe(1);
+        expect(minWidthUnits(block)).toBe(2);
     });
 
     // maxGetal is shared by the whole +-x: settings bag but only 'andere'/'vrij' reads it,
@@ -50,14 +50,14 @@ describe('minWidthUnits — measured', () => {
     const oneUp = () => makeBlock('rekenvolgorde', { block: { numberOfExercises: 1, widthUnits: 1 } });
 
     test('narrow content fits a quarter', () => {
-        expect(tierWidthPx(1)).toBeGreaterThan(140);
+        expect(tierWidthPx(1)).toBeGreaterThan(130);
         expect(minWidthUnits(oneUp(), measure(130, 1))).toBe(1);
     });
 
     test('content wider than a quarter cell is promoted to a half', () => {
-        expect(tierWidthPx(1)).toBeLessThan(300);
-        expect(tierWidthPx(2)).toBeGreaterThan(300);
-        expect(minWidthUnits(oneUp(), measure(300, 1))).toBe(2);
+        expect(tierWidthPx(1)).toBeLessThan(200);
+        expect(tierWidthPx(2)).toBeGreaterThan(200);
+        expect(minWidthUnits(oneUp(), measure(200, 1))).toBe(2);
     });
 
     test('content wider than a half cell is promoted to the full width', () => {
@@ -81,7 +81,7 @@ describe('minWidthUnits — measured', () => {
         expect(minWidthUnits(block, measure(500, 4))).toBe(2);
         // Measured AT the half the viewer is already 1-up, so that measurement is the
         // whole truth and the quarter opens on its own arithmetic.
-        expect(minWidthUnits(block, measure(140, 2))).toBe(1);
+        expect(minWidthUnits(block, measure(120, 2))).toBe(1);
     });
 
     test('all entries are judged: the full-width entry cannot keep a quarter shut', () => {
@@ -131,7 +131,7 @@ describe('pickerMinWidthUnits — the optimistic picker (round 4)', () => {
 
     test('a measured overflow is a hard demand for the picker too', () => {
         const block = makeBlock('rekenvolgorde', { block: { numberOfExercises: 4, widthUnits: 1 } });
-        expect(pickerMinWidthUnits(block, measure(300, 1))).toBe(2);
+        expect(pickerMinWidthUnits(block, measure(200, 1))).toBe(2);
     });
 
     test('geld tekenen/wissel never offer a quarter (round 4 owner pass)', () => {

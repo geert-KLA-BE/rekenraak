@@ -39,7 +39,7 @@ broke it clipped, overflowed or measured wrong on paper.
    Between a settings change and Genereer the old exercises are drawn under new settings —
    that must never throw or draw a wrong picture (`viewers.stale.test.tsx` sweeps it).
 
-Checks: `npm run check` (viewer smoke renders every type at 688/338/163px with solutions on
+Checks: `npm run check` (viewer smoke renders every type at 642/315/151px with solutions on
 and off), `npm run matrix` for tiers, `npm run font:baseline` + `font:compare` when sizes
 change. Add new option values to `src/config/constraintSpace.ts` so the generator matrix
 covers them.

@@ -23,7 +23,7 @@ import type { MathBlock } from '../services/math/types';
 
 // One width: a stale-settings crash is data-shaped, not width-shaped, and the smoke suite already
 // covers three widths. Two widths doubled the gate to 150 s for no extra signal.
-const WIDTHS = [338];
+const WIDTHS = [315];
 
 // CONSTRAINT_SPACE deliberately lists only what a GENERATOR reads. These keys are the
 // other half: settings only the viewer reads, which a teacher can still move under

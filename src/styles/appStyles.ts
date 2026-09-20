@@ -27,7 +27,7 @@ export const styles = {
   // gutter and the packer only ever budgeted one of them.
   blockContainer: (isActive: boolean, isNotLastBlock: boolean, showDividers: boolean = true): React.CSSProperties => ({
     // Vertical padding only, no horizontal inset: an opdracht kader has to line up with
-    // the koptekst and voettekst kaders, which sit on the page's 53px content edge. The
+    // the koptekst and voettekst kaders, which sit on the page's 76px content edge. The
     // old 16px padding + 4px margin + 1px border pushed it 21px in on each side.
     // It also makes cellWidthPx() honest — it always returned the full cell width.
     padding: '16px 0', position: 'relative', cursor: 'pointer', borderRadius: 'var(--radius-md)', boxSizing: 'border-box', margin: '4px 0', transition: 'box-shadow var(--dur) var(--ease-out), background-color var(--dur) var(--ease-out)',

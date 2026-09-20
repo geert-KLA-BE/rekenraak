@@ -134,7 +134,7 @@ what prints. [pagePacker](src/services/layout/pagePacker.ts) decides the breaks 
 **measured** block heights and content widths ([useMeasuredHeights](src/hooks/useMeasuredHeights.ts),
 with the estimate table as first-paint fallback); [PageSheet](src/components/layout/PageSheet.tsx)
 renders one page with its own header/footer and `break-after: page`. Screen geometry equals
-print geometry (8 mm head, 14 mm sides) — keep them in sync. Detail and the measurement
+print geometry (20 mm all round) — keep them in sync. Detail and the measurement
 contract: [ARCHITECTURE §9](.claude/docs/ARCHITECTURE.md).
 
 ---

@@ -14,14 +14,13 @@ export type WidthUnits = 1 | 2 | 4;
 // the top; ROW_UNIT_PX is the granularity the cost functions are calibrated in.
 export const ROW_UNIT_PX = 24;
 // The chrome heights are their print padding at 96dpi plus their content, measured on the
-// rendered page (2026-09-13, title + all four name fields): the header is 8mm (30px) above
-// 54px of fields and title plus the 12px content gap = 96px, the footer 4mm + 8mm (45px)
-// around a ~26px credit line = 71px. SYNC: index.css .page-sheet-head/-foot.
-// The header was 16mm until 2026-09-12 and 12mm until 2026-09-13; the header region's own
-// 12px frame padding and the title's 8px fields gap went with it when nothing needs them.
-// There is no VERTICAL body padding (.page-sheet-body is `padding: 0 53px`) — the 32px
+// rendered page (2026-09-20, 20mm normal margins, title + all four name fields): the
+// header is 76px (20mm) above 54px of fields and title plus the 12px content gap = 142px,
+// the footer 15px (4mm) + 76px (20mm) around a ~26px credit line = 117px.
+// SYNC: index.css .page-sheet-head/-foot.
+// There is no VERTICAL body padding (.page-sheet-body is `padding: 0 76px`) — the 32px
 // that used to be subtracted here was fiction; the ROW_BUDGET -2 below is the real slack.
-const BODY_HEIGHT_PX = 1123 - 96 /* header + content gap */ - 71 /* footer */;
+const BODY_HEIGHT_PX = 1123 - 142 /* header + content gap */ - 117 /* footer */;
 // Two units under what the body can actually hold. Under-estimating is the dangerous
 // direction — content crossing the footer — while over-estimating only wastes space.
 export const ROW_BUDGET = Math.floor(BODY_HEIGHT_PX / ROW_UNIT_PX) - 2;
@@ -154,10 +153,12 @@ const LAYOUT: Record<string, LayoutFacts> = {
     // fallback table floor moves up to match SETTINGS_FLOOR's ½.
     "getalpatronen": { rowUnits: 1.92, perRowFull: 1, minWidth: 2 },
     "herleidingen": { rowUnits: 2.14, perRowFull: 2, minWidth: 4 },
-    "hr-std-aftrekken": { rowUnits: 2.08, perRowFull: 2, minWidth: 1 },
-    "hr-std-delen": { rowUnits: 2.08, perRowFull: 2, minWidth: 1 },
-    "hr-std-gemengd": { rowUnits: 2.08, perRowFull: 2, minWidth: 1 },
-    "hr-std-optellen": { rowUnits: 2.08, perRowFull: 2, minWidth: 1 },
+    // minWidth 1 → 2 with the 2026-09-20 20mm-margin rerun: the narrower quarter column
+    // (139px, was 151px) no longer holds a row of standard arithmetic.
+    "hr-std-aftrekken": { rowUnits: 2.08, perRowFull: 2, minWidth: 2 },
+    "hr-std-delen": { rowUnits: 2.08, perRowFull: 2, minWidth: 2, minWidthSingle: 1 },
+    "hr-std-gemengd": { rowUnits: 2.08, perRowFull: 2, minWidth: 2, minWidthSingle: 1 },
+    "hr-std-optellen": { rowUnits: 2.08, perRowFull: 2, minWidth: 2 },
     "hr-std-vermenigvuldigen": { rowUnits: 2.08, perRowFull: 2, minWidth: 1 },
     // Measured 4 since 2026-09-13: the question row overflows a half (BUGS.md) — 2 once fixed.
     "kalender": { rowUnits: 14.65, perRowFull: 1, minWidth: 2 },
@@ -165,10 +166,12 @@ const LAYOUT: Record<string, LayoutFacts> = {
     "klok-kloklezen": { rowUnits: 7.08, perRowFull: 2.5, minWidth: 1 },
     "lengte-meten": { rowUnits: 5.67, perRowFull: 1, minWidth: 4 },
     "maateenheid": { rowUnits: 1.58, perRowFull: 1, minWidth: 1 },
-    "mab-herkennen": { rowUnits: 6.63, perRowFull: 2, minWidth: 2 },
+    // perRowFull 2 → 1 with the 2026-09-20 20mm-margin rerun: a full-width column (642px)
+    // no longer fits two glyph tables side by side.
+    "mab-herkennen": { rowUnits: 6.63, perRowFull: 1, minWidth: 2 },
     // A single drawn place-value figure has no glyph table to read, so it can go to ¼ —
     // unlike mab-herkennen, whose numeral/glyph pairing needs the ½ floor (SETTINGS_FLOOR).
-    "mab-tekenen": { rowUnits: 6.63, perRowFull: 2, minWidth: 1 },
+    "mab-tekenen": { rowUnits: 6.63, perRowFull: 1, minWidth: 1 },
     "omtrek": { rowUnits: 21.42, perRowFull: 1, minWidth: 4 },
     "oppervlakte": { rowUnits: 18.07, perRowFull: 1, minWidth: 4 },
     // C3 (2026-09-13 seeded rerun): rowUnits unchanged; minWidth 1 → 2 — a quarter now
@@ -191,7 +194,8 @@ const LAYOUT: Record<string, LayoutFacts> = {
     "vergelijken": { rowUnits: 2.17, perRowFull: 2, minWidth: 2 },
     "vormleer-figuren": { rowUnits: 6.5, perRowFull: 3, minWidth: 1 },
     "vormleer-hoeken": { rowUnits: 6.5, perRowFull: 3, minWidth: 1 },
-    "vormleer-punt-lijn": { rowUnits: 6.5, perRowFull: 3, minWidth: 1 },
+    // rowUnits 6.5 → 6.96 with the 2026-09-20 20mm-margin rerun (narrower column, taller rows).
+    "vormleer-punt-lijn": { rowUnits: 6.96, perRowFull: 3, minWidth: 1 },
     "weegschaal": { rowUnits: 9.38, perRowFull: 2, minWidth: 2 },
 };
 
@@ -301,15 +305,15 @@ export function ordenenRowPx(typeId: string, c: Record<string, unknown>, count: 
     return count * (maxChars * ORDENEN_CHAR_EM * ORDENEN_DEFAULT_MATH_PX + 8) + Math.max(0, count - 1) * ORDENEN_SEP_PX;
 }
 
-// A row that does not fit a half cell (330px, minus one column-gap reserved for a possible
-// neighbour) needs the full page; it never drops to a quarter (owner rule: ordenen/
+// A row that does not fit a half cell (tierWidthPx(2), minus one column-gap reserved for a
+// possible neighbour) needs the full page; it never drops to a quarter (owner rule: ordenen/
 // rangschikken/breuken-rangschikken never wrap, so a row too wide for its column has no
 // fallback but a wider column).
 const ordenenFloor: FloorRule = (block) => {
     const c = (block.constraints ?? {}) as Record<string, unknown>;
     const count = typeof c.count === 'number' ? c.count : 3;
     const rowPx = ordenenRowPx(block.typeId, c, count);
-    return rowPx <= 330 - 28 ? 2 : 4;
+    return rowPx <= tierWidthPx(2) - COL_GAP_PX ? 2 : 4;
 };
 
 const SETTINGS_FLOOR: Record<string, FloorRule> = {

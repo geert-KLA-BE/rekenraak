@@ -13,8 +13,8 @@ import { makeBlock } from './helpers/makeBlock';
 // The bar is deliberately low — it renders, it produces DOM, and React logs nothing. That
 // is enough to catch the crashes and key/prop warnings that a manual click-through misses.
 
-// Full width (681px), half and quarter of it, matching the 6/3/2-unit cells minus gaps.
-const WIDTHS = [FULL_BLOCK_WIDTH_PX, 338, 163];
+// Full width, half and quarter of it, matching the 6/3/2-unit cells minus gaps.
+const WIDTHS = [FULL_BLOCK_WIDTH_PX, 315, 151];
 
 const typeIds = Object.keys(EXERCISE_UI);
 

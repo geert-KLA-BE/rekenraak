@@ -2,11 +2,10 @@ import { useWorksheetStore } from '../../store/useWorksheetStore';
 import { createContext, useContext } from 'react';
 
 // Printable content width of a FULL-WIDTH block, in CSS px.
-// A4 at 96dpi is 794px minus the page's 2x53px side padding, so a full-width block gets
-// 688px. SYNC: index.css .page-sheet-body padding (53px on screen, 14mm in print).
-// It read 681 (15mm) here while App computed 688, so a viewer saw a different width
-// depending on whether it was inside a provider; 688 is the one the grid actually gives.
-export const FULL_BLOCK_WIDTH_PX = 688;
+// A4 at 96dpi is 794px minus the page's 2x76px side padding (20mm, a normal print
+// margin), so a full-width block gets 642px. SYNC: index.css .page-sheet-body padding
+// (76px on screen, 20mm in print).
+export const FULL_BLOCK_WIDTH_PX = 642;
 
 // Viewers decide their own column count from the width they have (2-up vs 1-up grids).
 // They used to hardcode 625, which is only true at full width: in a half-width block the

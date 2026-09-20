@@ -114,7 +114,7 @@ export default function PageSheet({
     const bodyRef = useRef<HTMLDivElement>(null);
     // The positioning layer for the cells. The body itself carries the side padding, and
     // an absolutely positioned child resolves against its containing block's PADDING box —
-    // hung off the body directly, every cell would start 53px too far left.
+    // hung off the body directly, every cell would start 76px too far left.
     const canvasRef = useRef<HTMLDivElement>(null);
     // The same pass that feeds real heights back to the packer also catches what it could
     // not prevent — a single block taller than one page. When that happens the page must
