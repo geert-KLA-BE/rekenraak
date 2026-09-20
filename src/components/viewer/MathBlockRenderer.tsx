@@ -25,11 +25,13 @@ const styles = {
     // The fill-in blank shrinks with the cell: 40px inside 6px margins at full width, a
     // narrower line in a quarter-width block where those 52px are a third of the row.
     mathDottedLine: (w = 40, m = 6): React.CSSProperties => ({ borderBottom: '1.5px solid #000', width: `${w}px`, margin: `0 ${m}px`, display: 'inline-block', height: ANSWER_LINE_H }),
-    mathInput: { width: '70px', textAlign: 'center', fontSize: 'calc(var(--sheet-size-math) * 1)', fontFamily: 'var(--font-sheet-math)', border: '1px solid transparent', background: 'transparent', outline: 'none', color: '#000', padding: 0 } as React.CSSProperties,
+    // color:inherit — inputs don't inherit color by default, and this one has to follow
+    // the region's custom text color like every other given number does.
+    mathInput: { width: '70px', textAlign: 'center', fontSize: 'calc(var(--sheet-size-math) * 1)', fontFamily: 'var(--font-sheet-math)', border: '1px solid transparent', background: 'transparent', outline: 'none', color: 'inherit', padding: 0 } as React.CSSProperties,
     fractionWrapper: { display: 'inline-flex', flexDirection: 'column', alignItems: 'center', margin: '0 4px', fontSize: 'calc(var(--sheet-size-math) * 0.87)' } as React.CSSProperties,
     fractionTop: { borderBottom: '1.5px solid #000', padding: '0 4px', minWidth: '24px', textAlign: 'center' } as React.CSSProperties,
     fractionBottom: { padding: '0 4px', minWidth: '24px', textAlign: 'center' } as React.CSSProperties,
-    wholeNumberStyle: { fontSize: 'calc(var(--sheet-size-math) * 1.04)', marginRight: '4px', color: '#000' } as React.CSSProperties,
+    wholeNumberStyle: { fontSize: 'calc(var(--sheet-size-math) * 1.04)', marginRight: '4px', color: 'inherit' } as React.CSSProperties,
     exerciseRow: { display: 'flex', alignItems: 'flex-end', fontSize: 'calc(var(--sheet-size-math) * 1)', fontFamily: 'var(--font-sheet-math)' } as React.CSSProperties,
     // widthPx applies only to the inline-short blank; inline-long and stepped keep their
     // full-width work line, which is writing room rather than an answer-sized slot.
@@ -180,7 +182,7 @@ export default function MathBlockRenderer({ block, showSolutions }: Props) {
     const renderGiven = (val: number | Fraction | undefined) => {
         if (val === undefined) return null;
         if (isFraction(val)) return <FractionDisplay val={val} />;
-        return <span style={{ fontFamily: 'var(--font-sheet-math)', fontSize: 'calc(var(--sheet-size-math) * 1)', color: '#000' }}>{formatMathNumber(val as number)}</span>;
+        return <span style={{ fontFamily: 'var(--font-sheet-math)', fontSize: 'calc(var(--sheet-size-math) * 1)', color: 'inherit' }}>{formatMathNumber(val as number)}</span>;
     };
 
     const renderAnswer = (val: number | Fraction | undefined) => {
