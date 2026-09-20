@@ -86,6 +86,38 @@ describe('worksheet file', () => {
         expect(parsed.docSettings.fontSizeText).toBe(16);
     });
 
+    // Font family + per-region style overrides ride the same docSettings spread as
+    // fontSizeMath/Text above — no field whitelist to forget when one is added.
+    test('font families and header/titel/footerCustom survive the round-trip', () => {
+        const s = state();
+        const docSettings = {
+            ...s.docSettings,
+            fontFamilyText: 'Roboto', fontFamilyMath: 'Fira Code', fontFamilyHeader: 'Roboto', fontFamilyFooter: 'Georgia',
+            headerCustom: { fontSize: 28, bold: true, color: '#123456' },
+            titelCustom: { fontSize: 20 },
+            footerCustom: { color: '#654321', padX: 4 },
+        } as DocSettings;
+        const json = JSON.stringify({
+            version: WORKSHEET_FORMAT_VERSION,
+            exportedAt: new Date().toISOString(),
+            mode: 'full',
+            blocks: s.blocks,
+            header: s.header,
+            footer: s.footer,
+            docSettings,
+            baseSettings: s.baseSettings,
+            selectedGrade: s.selectedGrade,
+        });
+        const parsed = parseWorksheetFile(json);
+        expect(parsed.docSettings.fontFamilyText).toBe('Roboto');
+        expect(parsed.docSettings.fontFamilyMath).toBe('Fira Code');
+        expect(parsed.docSettings.fontFamilyHeader).toBe('Roboto');
+        expect(parsed.docSettings.fontFamilyFooter).toBe('Georgia');
+        expect(parsed.docSettings.headerCustom).toEqual({ fontSize: 28, bold: true, color: '#123456' });
+        expect(parsed.docSettings.titelCustom).toEqual({ fontSize: 20 });
+        expect(parsed.docSettings.footerCustom).toEqual({ color: '#654321', padX: 4 });
+    });
+
     // The writing-space token must be invisible to sheets saved before it existed: a file
     // with no answerSpace has to come back with no answerSpace (absent = 18 = today's px),
     // and one that carries the setting has to keep it, sheet-wide and per block.
@@ -193,6 +225,27 @@ describe('share link', () => {
         expect(decoded!.header.titel).toBe('Rekenblad 1');
         expect(decoded!.baseSettings).toEqual(s.baseSettings);
         expect(decoded!.mode).toBe('full');
+    });
+
+    // Same fields as the file round-trip test above, through the share link's lz-string path.
+    test('font families and header/titel/footerCustom survive a share link', () => {
+        const s = state();
+        const withFonts = {
+            ...s,
+            docSettings: {
+                ...s.docSettings,
+                fontFamilyText: 'Roboto', fontFamilyMath: 'Fira Code', fontFamilyHeader: 'Roboto', fontFamilyFooter: 'Georgia',
+                headerCustom: { fontSize: 28, bold: true },
+                footerCustom: { color: '#654321' },
+            } as DocSettings,
+        };
+        const decoded = fileFromShare(encodeShareLink(withFonts));
+        expect(decoded!.docSettings.fontFamilyText).toBe('Roboto');
+        expect(decoded!.docSettings.fontFamilyMath).toBe('Fira Code');
+        expect(decoded!.docSettings.fontFamilyHeader).toBe('Roboto');
+        expect(decoded!.docSettings.fontFamilyFooter).toBe('Georgia');
+        expect(decoded!.docSettings.headerCustom).toEqual({ fontSize: 28, bold: true });
+        expect(decoded!.docSettings.footerCustom).toEqual({ color: '#654321' });
     });
 
     // showInstruction rides along on the block spread; no field whitelist to update, but a

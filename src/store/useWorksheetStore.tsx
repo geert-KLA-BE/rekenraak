@@ -90,17 +90,18 @@ export interface DocSettings {
     fontSizeMath?: number;   // pt, 11-16, default 13
     fontSizeText?: number;   // pt, 12-18, default 15
     // Sheet-wide font-FAMILY tokens, fed onto .print-area-shell as --font-sheet-text /
-    // --font-sheet-math / --font-sheet-header (theme.css). CSS font-family values
-    // (config/fontOptions.ts) — some are Google Fonts loaded via services/googleFonts.ts,
-    // the rest either ship with the app (Ubuntu / Azeret Mono) or rely on a font already
-    // installed on the teacher's machine. Optional → back-compat: undefined falls back to
-    // the token's own CSS default.
+    // --font-sheet-math / --font-sheet-header / --font-sheet-footer (theme.css). CSS
+    // font-family values (config/fontOptions.ts) — some are Google Fonts loaded via
+    // services/googleFonts.ts, the rest either ship with the app (Ubuntu / Azeret Mono) or
+    // rely on a font already installed on the teacher's machine. Optional → back-compat:
+    // undefined falls back to the token's own CSS default.
     fontFamilyText?: string;
     fontFamilyMath?: string; // kept monospace-only in the picker: column arithmetic needs it
-    // Title + Naam/Klas/Nr/Datum labels + footer strip — separate from fontFamilyText so a
-    // teacher can give the worksheet's "letterhead" its own look without changing the words
-    // in the exercises themselves.
-    fontFamilyHeaderFooter?: string;
+    // Title + Naam/Klas/Nr/Datum labels, and the footer strip — separate from fontFamilyText
+    // (and from each other) so a teacher can give the worksheet's "letterhead" its own look
+    // without changing the words in the exercises or tying header and footer together.
+    fontFamilyHeader?: string;
+    fontFamilyFooter?: string;
     // Sheet-wide writing space: the height of ONE answer line, in px at the 13pt default.
     // Fed onto .print-area-shell as --sheet-answer-h (theme.css) scaled by fontSizeMath, so
     // it follows the Cijfers slider. Optional → back-compat; absent = 18 (what the viewers

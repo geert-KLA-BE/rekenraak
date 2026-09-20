@@ -13,6 +13,9 @@ import { TEXT_FONT_OPTIONS } from '../../config/fontOptions';
 export type StyleRegion = 'header' | 'titel' | 'footer';
 
 const REGION_KEY = { header: 'headerCustom', titel: 'titelCustom', footer: 'footerCustom' } as const;
+// Header and footer each get their own font-family setting (titel has none of its own —
+// it already follows --font-sheet-text via the Opdrachten tab's picker).
+const FONT_FAMILY_KEY = { header: 'fontFamilyHeader', footer: 'fontFamilyFooter' } as const;
 // Sizes the sheet falls back to when a region carries no custom style.
 const DEFAULT_SIZE: Record<StyleRegion, number> = { header: 22, titel: 16, footer: 9 };
 
@@ -36,15 +39,15 @@ export default function RegionStyleFields({ region }: { region: StyleRegion }) {
                 />
             </Field>
 
-            {/* Header and footer share one font-family token (--font-sheet-header,
-                theme.css) — titel (opdracht-titel) already follows --font-sheet-text via
-                the Opdrachten tab's picker, so it gets no field of its own here. */}
+            {/* Header and footer each carry their own font-family token (--font-sheet-header /
+                --font-sheet-footer, theme.css) — titel (opdracht-titel) already follows
+                --font-sheet-text via the Opdrachten tab's picker, so it gets no field here. */}
             {region !== 'titel' && (
                 <Field label="Lettertype">
                     <FontFamilyPicker
-                        value={docSettings.fontFamilyHeaderFooter ?? TEXT_FONT_OPTIONS[0].value}
+                        value={docSettings[FONT_FAMILY_KEY[region]] ?? TEXT_FONT_OPTIONS[0].value}
                         options={TEXT_FONT_OPTIONS}
-                        onChange={(v) => updateDocSettings({ fontFamilyHeaderFooter: v })}
+                        onChange={(v) => updateDocSettings({ [FONT_FAMILY_KEY[region]]: v })}
                         ariaLabel="Lettertype" />
                 </Field>
             )}

@@ -191,9 +191,11 @@ export default function App() {
     if (textFont?.google) ensureGoogleFontLoaded(textFont.google);
     const mathFont = MATH_FONT_OPTIONS.find((f) => f.value === docSettings.fontFamilyMath);
     if (mathFont?.google) ensureGoogleFontLoaded(mathFont.google);
-    const headerFont = TEXT_FONT_OPTIONS.find((f) => f.value === docSettings.fontFamilyHeaderFooter);
+    const headerFont = TEXT_FONT_OPTIONS.find((f) => f.value === docSettings.fontFamilyHeader);
     if (headerFont?.google) ensureGoogleFontLoaded(headerFont.google);
-  }, [docSettings.fontFamilyText, docSettings.fontFamilyMath, docSettings.fontFamilyHeaderFooter]);
+    const footerFont = TEXT_FONT_OPTIONS.find((f) => f.value === docSettings.fontFamilyFooter);
+    if (footerFont?.google) ensureGoogleFontLoaded(footerFont.google);
+  }, [docSettings.fontFamilyText, docSettings.fontFamilyMath, docSettings.fontFamilyHeader, docSettings.fontFamilyFooter]);
   const showSolutions = useWorksheetStore((state) => state.showSolutions);
   const activeSelectionId = useWorksheetStore((state) => state.activeBlockId);
   const view = useWorksheetStore((state) => state.view);
@@ -773,7 +775,8 @@ export default function App() {
             ...(docSettings.fontSizeText != null ? { ['--sheet-size-text' as string]: `${docSettings.fontSizeText}pt` } : {}),
             ...(docSettings.fontFamilyMath != null ? { ['--font-sheet-math' as string]: docSettings.fontFamilyMath } : {}),
             ...(docSettings.fontFamilyText != null ? { ['--font-sheet-text' as string]: docSettings.fontFamilyText } : {}),
-            ...(docSettings.fontFamilyHeaderFooter != null ? { ['--font-sheet-header' as string]: docSettings.fontFamilyHeaderFooter } : {}),
+            ...(docSettings.fontFamilyHeader != null ? { ['--font-sheet-header' as string]: docSettings.fontFamilyHeader } : {}),
+            ...(docSettings.fontFamilyFooter != null ? { ['--font-sheet-footer' as string]: docSettings.fontFamilyFooter } : {}),
             // Writing space, expressed against --sheet-size-math so it follows the Cijfers
             // slider like every other sheet size. At the 18px default this is byte-identical
             // to the token's own value in theme.css.
