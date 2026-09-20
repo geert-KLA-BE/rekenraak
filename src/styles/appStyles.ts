@@ -15,7 +15,11 @@ export const styles = {
   // The sheet column owns the top bar, so both scroll/size independently of the panels.
   centreColumn: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '100%' } as React.CSSProperties,
   a4Sheet: { backgroundColor: '#ffffff', color: '#000000', width: '100%', maxWidth: '920px', minHeight: '1130px', height: 'auto', flex: '0 0 auto', marginTop: 'var(--sp-3)', padding: '34px 50px 45px', boxShadow: 'var(--shadow-3)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', position: 'relative', boxSizing: 'border-box' } as React.CSSProperties,
-  sheetHeaderLabel: { fontSize: '13px', fontWeight: 700 as const, marginRight: '6px', color: '#000', fontFamily: 'var(--font-sheet-header)' } as React.CSSProperties,
+  // 0.6em (not a fixed px) so the Naam:/Klas:/Nr:/Datum: labels scale with the header
+  // region's font-size (default container size ~22px → ~13px, matching the old fixed
+  // value) — otherwise the Koptekst tab's "Tekengrootte" slider had no visible effect
+  // on a header with no title, since the h1 was the only element that inherited it.
+  sheetHeaderLabel: { fontSize: '0.6em', fontWeight: 700 as const, marginRight: '6px', color: '#000', fontFamily: 'var(--font-sheet-header)' } as React.CSSProperties,
   sheetHeaderLine: { flex: 1, borderBottom: '1.5px solid #000', height: '16px' } as React.CSSProperties,
   scoreBox: { border: '2px solid #000', padding: '8px 14px', fontSize: 'calc(var(--sheet-size-math) * 0.87)', fontWeight: 'bold', borderRadius: '4px', fontFamily: 'var(--font-sheet-math)' } as React.CSSProperties,
   // Selection is screen-only (cleared before print). Apple-style: soft accent-soft
