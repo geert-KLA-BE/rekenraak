@@ -48,6 +48,13 @@ interface Props {
         block it actually measured: shrink it to fit, or cut it in two. */
     onFitBlock?: (blockId: string) => void;
     onSplitBlock?: (blockId: string, anchor: DOMRect) => void;
+    /** docSettings.pageImages with order:'back', as EditableSheetImages — rendered as the
+        page's very first children so normal DOM order paints them behind everything else
+        (no z-index needed). */
+    imagesBehind?: ReactNode;
+    /** Same, for order:'front' — rendered as the page's very LAST children, on top of the
+        header/body/footer. */
+    imagesInFront?: ReactNode;
 }
 
 // Three row units of blank (blockLayout's 24px unit). Below that the tail is ordinary
@@ -102,7 +109,7 @@ function ownHeight(cell: HTMLElement): number {
 export default function PageSheet({
     index, total, header, footer, contentGap, blockSpacing, columnGap, children, onBackgroundClick,
     onHeaderClick, onFooterClick, onBodyMeasure, onCellMeasure, onSplitNext, onFitBlock, onSplitBlock,
-    tailPx: packedTailPx,
+    tailPx: packedTailPx, imagesBehind, imagesInFront,
 }: Props) {
     const bodyRef = useRef<HTMLDivElement>(null);
     // The positioning layer for the cells. The body itself carries the side padding, and
@@ -172,6 +179,7 @@ export default function PageSheet({
 
     return (
         <div className={`page-sheet${overflowPx ? ' page-overflow' : ''}`} onClick={onBackgroundClick}>
+            {imagesBehind}
             {/* Screen-only page label: teachers could previously only see where a dashed line
                 fell, not which page they were looking at. */}
             <div className="no-print page-sheet-tag">Pagina {index + 1} van {total}</div>
@@ -230,6 +238,7 @@ export default function PageSheet({
                 {footer}
                 {onFooterClick && <span className="no-print sheet-zone-hint">Voettekst aanpassen</span>}
             </div>
+            {imagesInFront}
         </div>
     );
 }

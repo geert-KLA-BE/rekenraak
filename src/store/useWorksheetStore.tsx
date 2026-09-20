@@ -52,6 +52,22 @@ export interface RegionStyle {
     padY?: number;
 }
 
+// A free-standing page-design image (photo/logo), positioned/sized/rotated by hand on the
+// sheet (EditableSheetImage) rather than through sliders. x/y/width/height are layout px
+// within the page (794×1123); rotation in degrees; order is its stacking relative to the
+// sheet's own header/body/footer content ('back' = behind the text, 'front' = over it).
+export interface PageImage {
+    id: string;
+    src: string;   // data URL — client-only, there is no backend to host files
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation: number; // degrees, 0 = upright
+    opacity: number;  // 0-1
+    order: 'front' | 'back';
+}
+
 export interface DocSettings {
     showScores: boolean;
     opdrachtTitelStyle: 'regular' | 'boxed' | 'underlined';
@@ -102,6 +118,12 @@ export interface DocSettings {
     // without changing the words in the exercises or tying header and footer together.
     fontFamilyHeader?: string;
     fontFamilyFooter?: string;
+    // Page design — free-standing decorative images (photos/logos), each independently
+    // draggable, resizable and rotatable directly on the sheet (EditableSheetImage), and
+    // stackable either behind or in front of the sheet's own text ('order'). Rides along
+    // inside a saved page-design template (persistence.ts's PageDesign) like every other
+    // DocSettings field. Repeats identically on every page (there is no per-page position).
+    pageImages?: PageImage[];
     // Sheet-wide writing space: the height of ONE answer line, in px at the 13pt default.
     // Fed onto .print-area-shell as --sheet-answer-h (theme.css) scaled by fontSizeMath, so
     // it follows the Cijfers slider. Optional → back-compat; absent = 18 (what the viewers
@@ -194,8 +216,8 @@ interface WorksheetState {
     // Which sub-tab the Blad panel shows. Set by its own tab strip and by clicking the
     // header or footer ON the sheet, so both routes land in the same place. Transient UI
     // state: no history, never persisted or shared.
-    bladSection: 'koptekst' | 'opdrachten' | 'voettekst';
-    setBladSection: (s: 'koptekst' | 'opdrachten' | 'voettekst') => void;
+    bladSection: 'koptekst' | 'opdrachten' | 'voettekst' | 'ontwerp';
+    setBladSection: (s: 'koptekst' | 'opdrachten' | 'voettekst' | 'ontwerp') => void;
     setShowSolutions: (show: boolean) => void;
     setView: (view: WorksheetView) => void;
     setSidebarPreview: (on: boolean) => void;

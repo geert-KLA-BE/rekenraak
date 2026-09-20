@@ -14,6 +14,7 @@ import { regenerateBlock, GENERATION_FAILED } from '../../services/generateDispa
 import { suggestionsFor } from '../../config/instructionPresets';
 import { BODY_FONT_PX } from '../../config/printPalette';
 import RegionStyleFields, { ResetAllStylesButton } from './RegionStyleFields';
+import PageDesignFields from './PageDesignFields';
 import Switch from '../ui/Switch';
 import { F } from './plugins/shared/fieldStyles';
 import { ANSWER_SPACE_DEFAULT_PX } from '../viewer/BlockWidthContext';
@@ -428,6 +429,7 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                     <RegionStyleFields region="footer" />
                 </div>
         </>),
+        ontwerp: <PageDesignFields />,
     } as const;
 
     const docContent = (
@@ -435,7 +437,7 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                 {/* Inner level: underline tabs, not a second pill group. Two identical
                     segmented controls stacked gave no clue which level you were operating. */}
                 <div className="sub-tabs" style={{ marginBottom: 'var(--sp-4)' }}>
-                    {([['koptekst', 'Koptekst'], ['opdrachten', 'Opdrachten'], ['voettekst', 'Voettekst']] as const).map(([id, label]) => (
+                    {([['koptekst', 'Koptekst'], ['opdrachten', 'Opdrachten'], ['voettekst', 'Voettekst'], ['ontwerp', 'Afbeeldingen']] as const).map(([id, label]) => (
                         <button key={id} className="sub-tab" aria-pressed={bladSection === id} onClick={() => setBladSection(id)}>{label}</button>
                     ))}
                 </div>

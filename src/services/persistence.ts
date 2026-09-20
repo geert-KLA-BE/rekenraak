@@ -314,6 +314,62 @@ export function savePresetFromFile(file: WorksheetFile, name: string): Preset {
     return entry;
 }
 
+// ── Named page-design template library (blad settings + block structure, max 20) ─
+
+// docSettings holds no exercise content — only the styles used on the page (fonts, images,
+// header/footer/opdracht style) plus generic content settings (spacing, numbering) — so a
+// whole snapshot of it doubles as a reusable "page design". Applying one to another
+// worksheet is just updateDocSettings(design.docSettings).
+export interface PageDesign {
+    id: string;
+    name: string;
+    savedAt: string;
+    docSettings: DocSettings;
+}
+
+const PAGE_DESIGNS_KEY = 'rekenraak_page_designs_v1';
+export const MAX_PAGE_DESIGNS = 20;
+
+export function loadPageDesigns(): PageDesign[] {
+    try {
+        const raw = localStorage.getItem(PAGE_DESIGNS_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(d => d && typeof d.id === 'string' && d.docSettings && typeof d.docSettings === 'object');
+    } catch { return []; }
+}
+
+function persistPageDesigns(list: PageDesign[]): boolean {
+    try { localStorage.setItem(PAGE_DESIGNS_KEY, JSON.stringify(list)); return true; } catch { return false; }
+}
+
+/** Returns null when the write failed (quota full — page designs embed their images as data
+    URLs, see PageDesignFields.tsx, so a handful of photos can fill localStorage) so the
+    caller can tell the teacher the design was NOT actually saved, instead of the entry
+    silently vanishing the moment loadPageDesigns() re-reads storage. */
+export function savePageDesign(name: string, docSettings: DocSettings): PageDesign | null {
+    const list = loadPageDesigns();
+    const trimmed = (name || '').trim() || 'Naamloos';
+    const entry: PageDesign = {
+        id: newPresetId(),
+        name: trimmed.slice(0, 80),
+        savedAt: new Date().toISOString(),
+        docSettings,
+    };
+    const next = [...list, entry].sort((a, b) => a.savedAt.localeCompare(b.savedAt)).slice(-MAX_PAGE_DESIGNS);
+    return persistPageDesigns(next) ? entry : null;
+}
+
+export function deletePageDesign(id: string): void {
+    persistPageDesigns(loadPageDesigns().filter(d => d.id !== id));
+}
+
+export function renamePageDesign(id: string, name: string): void {
+    const trimmed = (name || '').trim().slice(0, 80) || 'Naamloos';
+    persistPageDesigns(loadPageDesigns().map(d => d.id === id ? { ...d, name: trimmed } : d));
+}
+
 // ── Share via URL hash (base64 in fragment, not query — never leaves browser) ─
 
 export function encodeShareLink(state: SerialisableState, opts: { template?: boolean; curriculum?: CurriculumLock } = {}): string | null {

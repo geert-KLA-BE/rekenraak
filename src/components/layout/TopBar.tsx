@@ -7,6 +7,7 @@ import IconButton from '../ui/IconButton';
 import Switch from '../ui/Switch';
 import MassAddModal from '../massadd/MassAddModal';
 import BaseSettingsModal from './BaseSettingsModal';
+import PageDesignsModal from './PageDesignsModal';
 import CurriculumBuilderModal from '../curriculum/CurriculumBuilderModal';
 import { Info } from '@phosphor-icons/react';
 import { useShedStages } from '../../hooks/useShedStages';
@@ -99,6 +100,7 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
     const menuFileRef = useRef<HTMLInputElement>(null);
     const [baseOpen, setBaseOpen] = useState(false);
     const [curriculumOpen, setCurriculumOpen] = useState(false);
+    const [pageDesignsOpen, setPageDesignsOpen] = useState(false);
 
     const handleExport = () => {
         const st = useWorksheetStore.getState();
@@ -264,6 +266,9 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
                                 <button className="ui-hover" style={S.menuItem} onClick={() => { setMenu(null); setView('bibliotheek'); }}>
                                     <BookOpen size={15} /> Kant-en-klare bladen
                                 </button>
+                                <button className="ui-hover" style={S.menuItem} onClick={() => { setMenu(null); setPageDesignsOpen(true); }}>
+                                    <LayoutTemplate size={15} /> Pagina-ontwerp sjablonen
+                                </button>
 
                                 <div style={S.menuDivider} />
                                 <div style={S.sectionLabel}>Bestand</div>
@@ -428,6 +433,7 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
             {massAddOpen && <MassAddModal onClose={() => setMassAddOpen(false)} />}
             {baseOpen && <BaseSettingsModal onClose={() => setBaseOpen(false)} />}
             {curriculumOpen && <CurriculumBuilderModal onClose={() => setCurriculumOpen(false)} />}
+            {pageDesignsOpen && <PageDesignsModal onClose={() => setPageDesignsOpen(false)} />}
         </div>
     );
 }

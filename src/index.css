@@ -101,7 +101,7 @@
    that fitted on screen ran under the footer on paper. The top margin was 16mm until
    2026-09-12 and 12mm until 2026-09-13; 8mm (30px) is as low as it goes — printer no-ink
    zones are 4-5mm and the dialog's own margin adds on top for anyone not on "Geen". */
-.page-sheet-head { padding: 30px 53px 0; flex: none; }
+.page-sheet-head { padding: 30px 53px 0; flex: none; position: relative; }
 .page-sheet-body {
   flex: 1; min-height: 0; padding: 0 53px; position: relative;
   /* Clipped on screen exactly as it will be on paper, so what you see is what prints. */
@@ -112,7 +112,34 @@
    inside a page flows any more, which is also why screen == print: the browser never gets
    to make a layout decision of its own. */
 .page-sheet-canvas { position: relative; height: 100%; }
-.page-sheet-foot { flex: none; padding: 15px 53px 30px; }
+.page-sheet-foot { flex: none; padding: 15px 53px 30px; position: relative; }
+
+/* Page-design images (EditableSheetImage.tsx) — free-standing, positioned/resized/rotated
+   by hand. Inert by default so they never steal clicks meant for the header/footer/body
+   underneath. The wrapper itself gets NO z-index bump: it must keep painting wherever its
+   `order` ('front'/'back') placed it in the DOM (see PageSheet's imagesBehind/imagesInFront
+   slots), in and out of edit mode alike, or "achter tekst" would look identical to "voor
+   tekst" the moment a teacher starts dragging it. Only the transparent interactive
+   scaffolding below (move hit-area + its outline, resize/rotate grips) is raised above
+   everything, so a "behind" image stays grabbable and its bounds stay visible even while
+   it is genuinely hidden under other page content. */
+.sheet-image { pointer-events: none; }
+.sheet-image-editable { pointer-events: auto; }
+.sheet-image-move { position: absolute; inset: 0; cursor: move; z-index: 50; outline: 1px dashed var(--accent); outline-offset: 2px; }
+.sheet-image-resize {
+  position: absolute; right: -6px; bottom: -6px; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--accent); border: 2px solid #fff;
+  cursor: nwse-resize; box-shadow: 0 1px 3px rgba(0,0,0,.4); z-index: 50;
+}
+/* Rotate handle: a stem above the box's top edge ending in a round grip. Both are plain
+   children of the (possibly already rotated) wrapper, so they turn with the box for free —
+   no extra transform math needed here. */
+.sheet-image-rotate-line { position: absolute; left: 50%; top: -22px; width: 1px; height: 22px; background: var(--accent); transform: translateX(-50%); z-index: 50; }
+.sheet-image-rotate {
+  position: absolute; left: 50%; top: -32px; width: 14px; height: 14px; margin-left: -7px;
+  border-radius: 50%; background: #fff; border: 2px solid var(--accent);
+  cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.4); z-index: 50;
+}
 
 /* The printed header and footer are editable in place: hovering shows an outline and a
    label, clicking opens their settings. Purely screen chrome — the outline rides an

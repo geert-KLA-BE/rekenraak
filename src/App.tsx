@@ -29,8 +29,9 @@ import { useSheetDnd } from './hooks/useSheetDnd';
 import SheetDropZones, { SheetDragHint } from './components/layout/SheetDropZones';
 import { styles } from './styles/appStyles';
 import { overlayRegionStyle } from './services/regionStyle';
+import EditableSheetImage from './components/layout/EditableSheetImage';
 import { loadAutosave, decodeShareHash, RELEASE_SEEN_KEY, TRYOUT_SEEN_KEY } from './services/persistence';
-import { DEFAULT_FIELD_ORDER, DEFAULT_FIELD_WIDTHS, type HeaderField } from './store/useWorksheetStore';
+import { DEFAULT_FIELD_ORDER, DEFAULT_FIELD_WIDTHS, type HeaderField, type PageImage } from './store/useWorksheetStore';
 import { RELEASE_VERSION, TRYOUT_TYPE_IDS } from './config/version';
 import type { MathBlock } from './services/math/types';
 import { TEXT_FONT_OPTIONS, MATH_FONT_OPTIONS } from './config/fontOptions';
@@ -209,6 +210,8 @@ export default function App() {
   const setActiveSelection = useWorksheetStore((state) => state.setActiveSelection);
   const setInspectorTab = useWorksheetStore((state) => state.setInspectorTab);
   const setBladSection = useWorksheetStore((state) => state.setBladSection);
+  const bladSection = useWorksheetStore((state) => state.bladSection);
+  const updateDocSettings = useWorksheetStore((state) => state.updateDocSettings);
 
   // Clicking the header or footer ON the sheet opens its settings: select the document,
   // switch to Blad, and open the sub-tab for the part that was clicked.
@@ -444,6 +447,33 @@ export default function App() {
   }, [packedPages, setBlockPages]);
 
   // ── Page chrome, rendered per page instead of once per sheet ──────────────
+  // Page-design images (docSettings.pageImages) are free-standing — not tied to the
+  // header/footer regions — so they render as two siblings of the whole page-sheet
+  // (PageSheet's imagesBehind/imagesInFront), split by each image's own 'order'. Only ONE
+  // page's worth of handles is ever interactive (page 1) — the values are shared across
+  // every page, so dragging on every page's copy would be redundant and cluttered — and
+  // only while the Ontwerp sub-tab is open, so the handles don't get in the way of
+  // ordinary editing.
+  const updatePageImage = (id: string, patch: Partial<PageImage>) => updateDocSettings({
+    pageImages: (docSettings.pageImages ?? []).map((img) => img.id === id ? { ...img, ...patch } : img),
+  });
+
+  const renderPageImages = (editable: boolean) => {
+    const images = docSettings.pageImages ?? [];
+    const toNodes = (order: 'front' | 'back') => images
+      .filter((img) => img.order === order)
+      .map((img) => (
+        <EditableSheetImage
+          key={img.id}
+          image={img}
+          editable={editable}
+          zoom={sheetZoom}
+          onCommit={(patch) => updatePageImage(img.id, patch)}
+        />
+      ));
+    return { behind: toNodes('back'), front: toNodes('front') };
+  };
+
   const renderHeaderRegion = () => (
     <>
           {/* ── HEADER ── (enum base style + optional style-builder overlay; custom wins) */}
@@ -533,7 +563,6 @@ export default function App() {
               );
             })()}
           </div>
-
     </>
   );
 
@@ -784,7 +813,9 @@ export default function App() {
           }}
         >
 
-          {packedPages.map((page, pi) => (
+          {packedPages.map((page, pi) => {
+            const { behind, front } = renderPageImages(pi === 0 && bladSection === 'ontwerp');
+            return (
             <PageSheet
               key={pi}
               index={pi}
@@ -792,6 +823,8 @@ export default function App() {
               contentGap={docSettings.headerContentGap ?? 12}
               blockSpacing={docSettings.blockSpacing ?? 12}
               columnGap={colGapPx}
+              imagesBehind={behind}
+              imagesInFront={front}
               onBackgroundClick={() => setActiveSelection('document')}
               onHeaderClick={() => openBladCard('koptekst')}
               onFooterClick={() => openBladCard('voettekst')}
@@ -934,7 +967,8 @@ export default function App() {
                 );
               })}
             </PageSheet>
-          ))}
+            );
+          })}
         </div>
         </div>
       </main>
