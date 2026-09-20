@@ -3,6 +3,8 @@ import { SwatchRow } from '../ui/Swatch';
 import { useWorksheetStore, type RegionStyle } from '../../store/useWorksheetStore';
 import { PRINT_PALETTE, PRINT_FILLS, STYLE_BOUNDS } from '../../config/printPalette';
 import { ANSWER_SPACE_DEFAULT_PX } from '../viewer/BlockWidthContext';
+import FontFamilyPicker from './FontFamilyPicker';
+import { TEXT_FONT_OPTIONS } from '../../config/fontOptions';
 
 // Look-and-feel controls for one printed region. These used to live in a "Stijl
 // aanpassen" modal with its own miniature preview; the three regions map exactly onto
@@ -33,6 +35,19 @@ export default function RegionStyleFields({ region }: { region: StyleRegion }) {
                     style={range}
                 />
             </Field>
+
+            {/* Header and footer share one font-family token (--font-sheet-header,
+                theme.css) — titel (opdracht-titel) already follows --font-sheet-text via
+                the Opdrachten tab's picker, so it gets no field of its own here. */}
+            {region !== 'titel' && (
+                <Field label="Lettertype">
+                    <FontFamilyPicker
+                        value={docSettings.fontFamilyHeaderFooter ?? TEXT_FONT_OPTIONS[0].value}
+                        options={TEXT_FONT_OPTIONS}
+                        onChange={(v) => updateDocSettings({ fontFamilyHeaderFooter: v })}
+                        ariaLabel="Lettertype" />
+                </Field>
+            )}
 
             <div style={rowStyle}>
                 <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-main)' }}>Vet</span>

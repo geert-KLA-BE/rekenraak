@@ -33,6 +33,8 @@ import { loadAutosave, decodeShareHash, RELEASE_SEEN_KEY, TRYOUT_SEEN_KEY } from
 import { DEFAULT_FIELD_ORDER, DEFAULT_FIELD_WIDTHS, type HeaderField } from './store/useWorksheetStore';
 import { RELEASE_VERSION, TRYOUT_TYPE_IDS } from './config/version';
 import type { MathBlock } from './services/math/types';
+import { TEXT_FONT_OPTIONS, MATH_FONT_OPTIONS } from './config/fontOptions';
+import { ensureGoogleFontLoaded } from './services/googleFonts';
 
 // Click-to-edit the opdracht title directly on the A4 preview (mirrors the
 // OrdenenViewer inline-edit pattern). Commit on blur/Enter, Esc cancels; frozen
@@ -182,6 +184,16 @@ export default function App() {
   const headerData = useWorksheetStore((state) => state.header);
   const footerData = useWorksheetStore((state) => state.footer);
   const docSettings = useWorksheetStore((state) => state.docSettings);
+  // Covers manual selection AND a doc loaded already set to an online font (autosave,
+  // shared link) — the CDN stylesheet still needs fetching once per session either way.
+  useEffect(() => {
+    const textFont = TEXT_FONT_OPTIONS.find((f) => f.value === docSettings.fontFamilyText);
+    if (textFont?.google) ensureGoogleFontLoaded(textFont.google);
+    const mathFont = MATH_FONT_OPTIONS.find((f) => f.value === docSettings.fontFamilyMath);
+    if (mathFont?.google) ensureGoogleFontLoaded(mathFont.google);
+    const headerFont = TEXT_FONT_OPTIONS.find((f) => f.value === docSettings.fontFamilyHeaderFooter);
+    if (headerFont?.google) ensureGoogleFontLoaded(headerFont.google);
+  }, [docSettings.fontFamilyText, docSettings.fontFamilyMath, docSettings.fontFamilyHeaderFooter]);
   const showSolutions = useWorksheetStore((state) => state.showSolutions);
   const activeSelectionId = useWorksheetStore((state) => state.activeBlockId);
   const view = useWorksheetStore((state) => state.view);
@@ -469,7 +481,7 @@ export default function App() {
               };
               const titleScore = (align: 'left' | 'right') => (hasTitle || showScore) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : 'flex-start', justifyContent: (hasTitle && showScore) ? 'space-between' : (!showScore) ? 'center' : 'flex-end', flexShrink: 0, gridColumn: align === 'right' ? '2' : '1', gridRow: '1' }}>
-                  {hasTitle && <h1 style={{ margin: 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-text)', fontWeight: 700, textAlign: align }}>{headerData!.titel}</h1>}
+                  {hasTitle && <h1 style={{ margin: 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-header)', fontWeight: 700, textAlign: align }}>{headerData!.titel}</h1>}
                   {showScore && <div style={styles.scoreBox}>Score: &nbsp; &nbsp; &nbsp; / {totalScore}</div>}
                 </div>
               ) : null;
@@ -514,7 +526,7 @@ export default function App() {
                   {/* The 8px only separates the title from the fields/score row above it;
                       with every field off there is nothing to separate it from and the gap
                       is paper margin pretending to be layout. */}
-                  {hasTitle && <h1 style={{ margin: (centerFields || showScore) ? '8px 0 0' : 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-text)', fontWeight: 700, textAlign: 'center' }}>{headerData!.titel}</h1>}
+                  {hasTitle && <h1 style={{ margin: (centerFields || showScore) ? '8px 0 0' : 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-header)', fontWeight: 700, textAlign: 'center' }}>{headerData!.titel}</h1>}
                 </>
               );
             })()}
@@ -759,6 +771,9 @@ export default function App() {
             // touched the slider — omitted keys fall back to the CSS token default.
             ...(docSettings.fontSizeMath != null ? { ['--sheet-size-math' as string]: `${docSettings.fontSizeMath}pt` } : {}),
             ...(docSettings.fontSizeText != null ? { ['--sheet-size-text' as string]: `${docSettings.fontSizeText}pt` } : {}),
+            ...(docSettings.fontFamilyMath != null ? { ['--font-sheet-math' as string]: docSettings.fontFamilyMath } : {}),
+            ...(docSettings.fontFamilyText != null ? { ['--font-sheet-text' as string]: docSettings.fontFamilyText } : {}),
+            ...(docSettings.fontFamilyHeaderFooter != null ? { ['--font-sheet-header' as string]: docSettings.fontFamilyHeaderFooter } : {}),
             // Writing space, expressed against --sheet-size-math so it follows the Cijfers
             // slider like every other sheet size. At the 18px default this is byte-identical
             // to the token's own value in theme.css.

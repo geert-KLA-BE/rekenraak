@@ -17,6 +17,8 @@ import RegionStyleFields, { ResetAllStylesButton } from './RegionStyleFields';
 import Switch from '../ui/Switch';
 import { F } from './plugins/shared/fieldStyles';
 import { ANSWER_SPACE_DEFAULT_PX } from '../viewer/BlockWidthContext';
+import FontFamilyPicker from './FontFamilyPicker';
+import { TEXT_FONT_OPTIONS, MATH_FONT_OPTIONS } from '../../config/fontOptions';
 
 const FIELD_RANGE: Record<HeaderField, { min: number; max: number; label: string }> = {
     naam:   { min: 100, max: 500, label: 'Naam' },
@@ -266,7 +268,7 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                 </div>
 
                 <div style={S.card}>
-                    <h4 style={S.cardTitle}>Lettergrootte</h4>
+                    <h4 style={S.cardTitle}>Vormgeving opdracht teksten</h4>
                     {/* Sheet-wide base sizes (pt), fed onto .print-area-shell as CSS tokens
                         --sheet-size-math / --sheet-size-text (theme.css). Distinct from the
                         zoom slider below: these are the BASE every viewer px scales from,
@@ -285,6 +287,27 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                             onChange={(e) => updateDocSettings({ fontSizeText: Number(e.target.value) })}
                             style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }} />
                         <p style={S.hintText}>Opdrachten en woorden.</p>
+
+                        {/* Font FAMILY, distinct from the size sliders above. Fed onto
+                            .print-area-shell as --font-sheet-math / --font-sheet-text
+                            (theme.css). Math stays a picker of monospace fonts only —
+                            column arithmetic (cijferen, staartdelingen) needs every glyph
+                            to share the same advance. "(online)" entries are fetched from
+                            Google Fonts (services/googleFonts.ts) — internet required. */}
+                        <label style={{ ...S.label, marginTop: '10px' }}>Lettertype cijfers</label>
+                        <FontFamilyPicker
+                            value={docSettings.fontFamilyMath ?? MATH_FONT_OPTIONS[0].value}
+                            options={MATH_FONT_OPTIONS}
+                            onChange={(v) => updateDocSettings({ fontFamilyMath: v })}
+                            ariaLabel="Lettertype cijfers" />
+
+                        <label style={{ ...S.label, marginTop: '10px' }}>Lettertype tekst</label>
+                        <FontFamilyPicker
+                            value={docSettings.fontFamilyText ?? TEXT_FONT_OPTIONS[0].value}
+                            options={TEXT_FONT_OPTIONS}
+                            onChange={(v) => updateDocSettings({ fontFamilyText: v })}
+                            ariaLabel="Lettertype tekst" />
+                        <p style={S.hintText}>Een niet-geïnstalleerd lettertype valt terug op het standaardlettertype.</p>
                     </div>
                 </div>
 
