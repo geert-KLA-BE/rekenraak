@@ -192,7 +192,7 @@ function PositieBenenItem({ ex, showSolutions }: { ex: SplitsenExercise; showSol
     const xs = places.map((_, i) => ((i + 0.5) / places.length) * W);
 
     return (
-        <div className="print-exercise" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', fontFamily: "'Azeret Mono', monospace", fontSize: 'calc(var(--sheet-size-math) * 1.04)' }}>
+        <div className="print-exercise" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', fontFamily: 'var(--font-sheet-math)', fontSize: 'calc(var(--sheet-size-math) * 1.04)' }}>
             {/* top number */}
             <div style={{ height: '26px', display: 'flex', alignItems: 'center' }}>
                 {topBlank
@@ -228,12 +228,12 @@ function PositieTabelItem({ ex, showSolutions }: { ex: SplitsenExercise; showSol
     const cols = ex.placeBreakdown || [];
     const cell: React.CSSProperties = {
         border: '1px solid #000', width: '42px', height: '36px', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', fontFamily: "'Azeret Mono', monospace", fontSize: 'calc(var(--sheet-size-math) * 0.92)', boxSizing: 'border-box',
+        alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sheet-math)', fontSize: 'calc(var(--sheet-size-math) * 0.92)', boxSizing: 'border-box',
     };
     return (
         <div className="print-exercise" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', width: '100%' }}>
             {/* Word fills the left; tables pin to the far right so all line up with room to spare. */}
-            <div style={{ flex: 1, minWidth: 0, fontFamily: "'Azeret Mono', monospace", fontSize: 'calc(var(--sheet-size-math) * 0.92)' }}>{ex.words}</div>
+            <div style={{ flex: 1, minWidth: 0, fontFamily: 'var(--font-sheet-math)', fontSize: 'calc(var(--sheet-size-math) * 0.92)' }}>{ex.words}</div>
             <div style={{ flexShrink: 0 }}>
                 <div style={{ display: 'flex' }}>
                     {cols.map(p => <div key={p.key} style={{ ...cell, backgroundColor: '#f4cbb8', fontWeight: 'bold' }}>{p.key}</div>)}
@@ -269,7 +269,7 @@ function PositieMathRow({ ex, showSolutions, leftColWidth }: { ex: SplitsenExerc
     // to the block's widest left-side content) so the "=" itself lands at the same x on
     // every row, whichever term order (gehusseld or not) the terms come in.
     return (
-        <div className="print-exercise" style={{ display: 'flex', alignItems: 'baseline', gap: '6px', fontFamily: "'Azeret Mono', monospace", fontSize: 'calc(var(--sheet-size-math) * 1.04)' }}>
+        <div className="print-exercise" style={{ display: 'flex', alignItems: 'baseline', gap: '6px', fontFamily: 'var(--font-sheet-math)', fontSize: 'calc(var(--sheet-size-math) * 1.04)' }}>
             <span style={{ display: 'inline-flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '6px', minWidth: leftColWidth }}>
                 {compose
                     ? places.map((p, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px' }}>{i > 0 && <span>+</span>}{termGiven(p)}</span>)
@@ -291,7 +291,7 @@ function BasicBox({ ex, showSolutions, rowHeight }: { ex: SplitsenExercise; show
     const cellBase: React.CSSProperties = {
         border: '1px solid #000',
         fontSize: 'calc(var(--sheet-size-math) * 0.81)',
-        fontFamily: "'Azeret Mono', monospace",
+        fontFamily: 'var(--font-sheet-math)',
         textAlign: 'center',
         height: `${rowHeight}px`,
         display: 'flex',
@@ -330,7 +330,7 @@ function SplitsboomItem({ ex, showSolutions, boxMinWidth }: { ex: SplitsenExerci
         <div style={{
             border: '1.5px solid #000', borderRadius: '4px', minWidth: boxMinWidth, height: '38px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: "'Azeret Mono', monospace", fontSize: 'calc(var(--sheet-size-math) * 1.04)', boxSizing: 'border-box', padding: '0 6px',
+            fontFamily: 'var(--font-sheet-math)', fontSize: 'calc(var(--sheet-size-math) * 1.04)', boxSizing: 'border-box', padding: '0 6px',
         }}>
             {isBlank ? (showSolutions ? <span style={solutionText}>{fmt(value)}</span> : '') : fmt(value)}
         </div>
@@ -357,7 +357,7 @@ function MathematicRow({ total, given, answer, showSolutions }: {
     total: number; given: number; answer: number; showSolutions: boolean;
 }) {
     return (
-        <div className="print-exercise" style={{ display: 'flex', alignItems: 'flex-end', fontSize: 'calc(var(--sheet-size-math) * 1)', fontFamily: "'Azeret Mono', monospace" }}>
+        <div className="print-exercise" style={{ display: 'flex', alignItems: 'flex-end', fontSize: 'calc(var(--sheet-size-math) * 1)', fontFamily: 'var(--font-sheet-math)' }}>
             <div style={{ width: '64px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                 <span style={{ fontWeight: 'normal' }}>{fmt(total)}</span>
             </div>
@@ -389,7 +389,7 @@ function HeartItem({ pairId, total, given, answer, showSolutions }: {
 
     return (
         <div className="print-exercise" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0px' }}>
-            <span style={{ fontSize: 'calc(var(--sheet-size-math) * 0.81)', fontFamily: "'Azeret Mono', monospace", fontWeight: 'normal', marginBottom: '-16px', zIndex: 1, position: 'relative' }}>{fmt(total)}</span>
+            <span style={{ fontSize: 'calc(var(--sheet-size-math) * 0.81)', fontFamily: 'var(--font-sheet-math)', fontWeight: 'normal', marginBottom: '-16px', zIndex: 1, position: 'relative' }}>{fmt(total)}</span>
             {/* position:relative wrapper so number divs stack on top of SVG */}
             <div style={{ position: 'relative', width: W, height: H }}>
                 <svg viewBox="0 0 100 95" width={W} height={H} style={{ display: 'block' }}>
@@ -414,7 +414,7 @@ function HeartItem({ pairId, total, given, answer, showSolutions }: {
                     display: 'flex', justifyContent: 'center',
                     pointerEvents: 'none',
                 }}>
-                    <span style={{ fontSize: 'calc(var(--sheet-size-math) * 0.92)', fontWeight: 'normal', fontFamily: "'Azeret Mono', monospace" }}>{fmt(given)}</span>
+                    <span style={{ fontSize: 'calc(var(--sheet-size-math) * 0.92)', fontWeight: 'normal', fontFamily: 'var(--font-sheet-math)' }}>{fmt(given)}</span>
                 </div>
                 {/* Right half number */}
                 {showSolutions && (
@@ -425,7 +425,7 @@ function HeartItem({ pairId, total, given, answer, showSolutions }: {
                         display: 'flex', justifyContent: 'center',
                         pointerEvents: 'none',
                     }}>
-                        <span style={{ fontSize: 'calc(var(--sheet-size-math) * 0.92)', fontFamily: "'Azeret Mono', monospace", ...solutionText }}>{fmt(answer)}</span>
+                        <span style={{ fontSize: 'calc(var(--sheet-size-math) * 0.92)', fontFamily: 'var(--font-sheet-math)', ...solutionText }}>{fmt(answer)}</span>
                     </div>
                 )}
             </div>

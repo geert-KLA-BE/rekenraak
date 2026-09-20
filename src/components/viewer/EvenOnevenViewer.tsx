@@ -10,7 +10,7 @@ interface Props {
     showSolutions: boolean;
 }
 
-const mono = "'Azeret Mono', monospace";
+const mono = 'var(--font-sheet-math)';
 const FILL = '#93c5fd';
 // Sizes below are factors of the sheet tokens (--sheet-size-math / --sheet-size-text) so print scales with the docSettings sliders.
 // SYNC: same convention as GetallenasViewer / ClockViewer / MabViewer.

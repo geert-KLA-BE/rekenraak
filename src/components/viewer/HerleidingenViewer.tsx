@@ -10,7 +10,7 @@ import { ANSWER_LINE_H } from './BlockWidthContext';
 
 interface Props { block: MathBlock; showSolutions: boolean; }
 
-const mono = "'Azeret Mono', monospace";
+const mono = 'var(--font-sheet-math)';
 const SALMON = '#f4cbb8';
 
 // Sizes below are factors of the sheet token (--sheet-size-math), not fixed px

@@ -10,7 +10,7 @@ interface Props {
     showSolutions: boolean;
 }
 
-const mono = "'Azeret Mono', monospace";
+const mono = 'var(--font-sheet-math)';
 // Sizes below are factors of the sheet tokens (--sheet-size-math / --sheet-size-text) so print scales with the docSettings sliders.
 // promptW/answerMin stay raw px (shrink-to-fit geometry measured against a fixed 18px char width, not a static style).
 

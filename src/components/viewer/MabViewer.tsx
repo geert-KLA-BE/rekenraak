@@ -157,7 +157,7 @@ function MabItem({ ex, style, cols, scaffolding, boxHeight, answerHeight, figure
     const showNumberOnLine = mode === 'tekenen' || showSolutions;
 
     return (
-        <div className="print-exercise" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: "'Azeret Mono', monospace", fontSize: `${figureFontPx}px` }}>
+        <div className="print-exercise" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'var(--font-sheet-math)', fontSize: `${figureFontPx}px` }}>
             {/* BOX = optional outer border + optional H/T/E header row + drawing area */}
             <div style={{
                 width: 'max-content',

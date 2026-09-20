@@ -11,7 +11,7 @@ interface Props {
     showSolutions: boolean;
 }
 
-const mono = "'Azeret Mono', monospace";
+const mono = 'var(--font-sheet-math)';
 // Sizes below are factors of the sheet tokens (--sheet-size-math / --sheet-size-text) so print scales with the docSettings sliders.
 
 export default function PatroonViewer({ block, showSolutions }: Props) {

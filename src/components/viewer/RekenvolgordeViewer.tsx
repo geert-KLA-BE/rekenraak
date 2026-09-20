@@ -11,7 +11,7 @@ interface Props {
     showSolutions: boolean;
 }
 
-const mono = "'Azeret Mono', monospace";
+const mono = 'var(--font-sheet-math)';
 // Same operator glyphs as everywhere else, plus the brackets this viewer alone prints.
 const GLYPH: Record<string, string> = { ...OP_GLYPH, '(': '(', ')': ')' };
 // SYNC: keep the mono face, the *1 size factor and CHAR_PX aligned with MathBlockRenderer —

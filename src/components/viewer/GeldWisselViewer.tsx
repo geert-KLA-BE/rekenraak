@@ -16,7 +16,7 @@ function WisselCell({ ex, boxHeight }: { ex: GeldWisselExercise; boxHeight: numb
             <div style={{ flexShrink: 0 }}>
                 <Bill valueCents={ex.billValueCents} />
             </div>
-            <div style={{ fontSize: 'calc(var(--sheet-size-math) * 1.38)', fontWeight: 'bold', fontFamily: "'Azeret Mono', monospace", flexShrink: 0 }}>
+            <div style={{ fontSize: 'calc(var(--sheet-size-math) * 1.38)', fontWeight: 'bold', fontFamily: 'var(--font-sheet-math)', flexShrink: 0 }}>
                 =
             </div>
             <div style={{ flex: 1, height: `${boxHeight}px`, border: '2px solid #000', boxSizing: 'border-box', borderRadius: '6px' }} />
