@@ -10,6 +10,8 @@ export function overlayRegionStyle(base: CSSProperties, rs?: RegionStyle): CSSPr
     const out: CSSProperties = { ...base };
     if (rs.fontSize != null) out.fontSize = `${rs.fontSize}px`;
     if (rs.bold != null) out.fontWeight = rs.bold ? 700 : 400;
+    if (rs.italic) out.fontStyle = 'italic';
+    if (rs.underline) out.textDecoration = 'underline';
     if (rs.color) out.color = rs.color;
     if (rs.background) out.background = rs.background;
     if (rs.align) out.textAlign = rs.align;
@@ -24,3 +26,4 @@ export function overlayRegionStyle(base: CSSProperties, rs?: RegionStyle): CSSPr
     if (rs.padX != null || rs.padY != null) out.padding = `${rs.padY ?? 0}px ${rs.padX ?? 0}px`;
     return out;
 }
+

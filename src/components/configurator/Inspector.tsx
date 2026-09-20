@@ -14,12 +14,13 @@ import { regenerateBlock, GENERATION_FAILED } from '../../services/generateDispa
 import { suggestionsFor } from '../../config/instructionPresets';
 import { BODY_FONT_PX } from '../../config/printPalette';
 import RegionStyleFields, { ResetAllStylesButton } from './RegionStyleFields';
+import FontStyleFields from './FontStyleFields';
+import FontFamilyPicker from './FontFamilyPicker';
+import { TEXT_FONT_OPTIONS, MATH_FONT_OPTIONS } from '../../config/fontOptions';
 import PageDesignFields from './PageDesignFields';
 import Switch from '../ui/Switch';
 import { F } from './plugins/shared/fieldStyles';
 import { ANSWER_SPACE_DEFAULT_PX } from '../viewer/BlockWidthContext';
-import FontFamilyPicker from './FontFamilyPicker';
-import { TEXT_FONT_OPTIONS, MATH_FONT_OPTIONS } from '../../config/fontOptions';
 
 const FIELD_RANGE: Record<HeaderField, { min: number; max: number; label: string }> = {
     naam:   { min: 100, max: 500, label: 'Naam' },
@@ -204,6 +205,35 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                     <h4 style={S.cardTitle}>Vormgeving koptekst</h4>
                     <RegionStyleFields region="header" />
                 </div>
+
+                {/* Naam/Klas/Nr/Datum labels — own style, independent from the title above
+                    (headerCustom): a teacher can style one without the other following along. */}
+                <div style={S.card}>
+                    <h4 style={S.cardTitle}>Vormgeving veldlabels</h4>
+                    <label style={S.label}>Lettertype</label>
+                    <FontFamilyPicker
+                        value={docSettings.fontFamilyHeaderVelden ?? TEXT_FONT_OPTIONS[0].value}
+                        options={TEXT_FONT_OPTIONS}
+                        onChange={(v) => updateDocSettings({ fontFamilyHeaderVelden: v })}
+                        ariaLabel="Lettertype veldlabels" />
+                    <label style={{ ...S.label, marginTop: '10px' }}>Tekengrootte: {docSettings.headerVeldenCustom?.fontSize ?? 13}px</label>
+                    <input type="range" min={8} max={20} step={1}
+                        value={docSettings.headerVeldenCustom?.fontSize ?? 13}
+                        onChange={(e) => updateDocSettings({ headerVeldenCustom: { ...docSettings.headerVeldenCustom, fontSize: Number(e.target.value) } })}
+                        style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer', marginBottom: 'var(--sp-4)' }} />
+                    <FontStyleFields
+                        color={docSettings.headerVeldenCustom?.color}
+                        onColorChange={(v) => updateDocSettings({ headerVeldenCustom: { ...docSettings.headerVeldenCustom, color: v } })}
+                        background={docSettings.headerVeldenCustom?.background}
+                        onBackgroundChange={(v) => updateDocSettings({ headerVeldenCustom: { ...docSettings.headerVeldenCustom, background: v } })}
+                        bold={docSettings.headerVeldenCustom?.bold}
+                        onBoldChange={(v) => updateDocSettings({ headerVeldenCustom: { ...docSettings.headerVeldenCustom, bold: v } })}
+                        italic={docSettings.headerVeldenCustom?.italic}
+                        onItalicChange={(v) => updateDocSettings({ headerVeldenCustom: { ...docSettings.headerVeldenCustom, italic: v } })}
+                        underline={docSettings.headerVeldenCustom?.underline}
+                        onUnderlineChange={(v) => updateDocSettings({ headerVeldenCustom: { ...docSettings.headerVeldenCustom, underline: v } })}
+                    />
+                </div>
         </>),
         opdrachten: (<>
                 {/* ── Opdrachten — how every exercise block is presented ── */}
@@ -269,61 +299,47 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                 </div>
 
                 <div style={S.card}>
-                    <h4 style={S.cardTitle}>Vormgeving opdracht teksten</h4>
-                    {/* Sheet-wide base sizes (pt), fed onto .print-area-shell as CSS tokens
-                        --sheet-size-math / --sheet-size-text (theme.css). Distinct from the
-                        zoom slider below: these are the BASE every viewer px scales from,
-                        bodyFontScale is a multiplier on top of the result. */}
-                    <div style={S.col}>
-                        <label style={S.label}>Cijfers: {docSettings.fontSizeMath ?? 13}pt</label>
-                        <input type="range" min={11} max={16} step={1}
-                            value={docSettings.fontSizeMath ?? 13}
-                            onChange={(e) => updateDocSettings({ fontSizeMath: Number(e.target.value) })}
-                            style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }} />
-                        <p style={S.hintText}>Alle getallen en rekenwerk.</p>
+                    <h4 style={S.cardTitle}>Vormgeving oefeningen</h4>
+                    {/* Sheet-wide base font (pt) and family for math/text, fed onto
+                        .print-area-shell as --sheet-size-math/text and --font-sheet-math/text
+                        (theme.css). Two of each — cijfers stays monospace-only for column
+                        arithmetic — so this doesn't fit the single-family FontStyleFields. */}
+                    <label style={S.label}>Lettertype cijfers</label>
+                    <FontFamilyPicker
+                        value={docSettings.fontFamilyMath ?? MATH_FONT_OPTIONS[0].value}
+                        options={MATH_FONT_OPTIONS}
+                        onChange={(v) => updateDocSettings({ fontFamilyMath: v })}
+                        ariaLabel="Lettertype cijfers" />
+                    <label style={{ ...S.label, marginTop: '10px' }}>Cijfers: {docSettings.fontSizeMath ?? 13}pt</label>
+                    <input type="range" min={11} max={16} step={1}
+                        value={docSettings.fontSizeMath ?? 13}
+                        onChange={(e) => updateDocSettings({ fontSizeMath: Number(e.target.value) })}
+                        style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }} />
 
-                        <label style={{ ...S.label, marginTop: '10px' }}>Opdrachttekst: {docSettings.fontSizeText ?? 15}pt</label>
-                        <input type="range" min={12} max={18} step={1}
-                            value={docSettings.fontSizeText ?? 15}
-                            onChange={(e) => updateDocSettings({ fontSizeText: Number(e.target.value) })}
-                            style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }} />
-                        <p style={S.hintText}>Opdrachten en woorden.</p>
+                    <label style={{ ...S.label, marginTop: '14px' }}>Lettertype tekst</label>
+                    <FontFamilyPicker
+                        value={docSettings.fontFamilyText ?? TEXT_FONT_OPTIONS[0].value}
+                        options={TEXT_FONT_OPTIONS}
+                        onChange={(v) => updateDocSettings({ fontFamilyText: v })}
+                        ariaLabel="Lettertype tekst" />
+                    <label style={{ ...S.label, marginTop: '10px' }}>Opdrachttekst: {docSettings.fontSizeText ?? 15}pt</label>
+                    <input type="range" min={12} max={18} step={1}
+                        value={docSettings.fontSizeText ?? 15}
+                        onChange={(e) => updateDocSettings({ fontSizeText: Number(e.target.value) })}
+                        style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }} />
+                    <p style={S.hintText}>Een niet-geïnstalleerd lettertype valt terug op het standaardlettertype.</p>
 
-                        {/* Font FAMILY, distinct from the size sliders above. Fed onto
-                            .print-area-shell as --font-sheet-math / --font-sheet-text
-                            (theme.css). Math stays a picker of monospace fonts only —
-                            column arithmetic (cijferen, staartdelingen) needs every glyph
-                            to share the same advance. "(online)" entries are fetched from
-                            Google Fonts (services/googleFonts.ts) — internet required. */}
-                        <label style={{ ...S.label, marginTop: '10px' }}>Lettertype cijfers</label>
-                        <FontFamilyPicker
-                            value={docSettings.fontFamilyMath ?? MATH_FONT_OPTIONS[0].value}
-                            options={MATH_FONT_OPTIONS}
-                            onChange={(v) => updateDocSettings({ fontFamilyMath: v })}
-                            ariaLabel="Lettertype cijfers" />
-
-                        <label style={{ ...S.label, marginTop: '10px' }}>Lettertype tekst</label>
-                        <FontFamilyPicker
-                            value={docSettings.fontFamilyText ?? TEXT_FONT_OPTIONS[0].value}
-                            options={TEXT_FONT_OPTIONS}
-                            onChange={(v) => updateDocSettings({ fontFamilyText: v })}
-                            ariaLabel="Lettertype tekst" />
-                        <p style={S.hintText}>Een niet-geïnstalleerd lettertype valt terug op het standaardlettertype.</p>
-                    </div>
-                </div>
-
-                <div style={S.card}>
-                    <h4 style={S.cardTitle}>Tekstgrootte oefeningen</h4>
                     {/* Sheet-wide, not per region: scales every block's exercise body and its
-                        opdracht-titel together. Shown in px against the base; stored as a zoom
+                        opdracht-titel together, ON TOP of the literal pt sizes above — a zoom,
+                        not a third font size. Shown in px against the base; stored as a zoom
                         factor. From 16px up, wide blocks start getting auto-shrunk to fit. */}
                     {(() => {
                         const px = Math.round((docSettings.bodyFontScale ?? 1) * BODY_FONT_PX.base);
                         const bigText = px >= 16;
                         return (
                             <>
-                                <label style={{ ...S.label, color: bigText ? 'var(--danger)' : undefined }}>
-                                    {bigText ? '⚠ ' : ''}Tekstgrootte oefeningen: {px} px
+                                <label style={{ ...S.label, marginTop: '14px', color: bigText ? 'var(--danger)' : undefined }}>
+                                    {bigText ? '⚠ ' : ''}Zoom oefeningen: {px} px
                                 </label>
                                 <input
                                     type="range" min={BODY_FONT_PX.min} max={BODY_FONT_PX.max} step={BODY_FONT_PX.step}
@@ -334,10 +350,27 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                                 {bigText && (
                                     <p style={S.hintText}>Grote tekst kan brede oefeningen automatisch verkleinen om op de pagina te passen.</p>
                                 )}
-                                <div style={{ marginTop: 'var(--sp-4)' }}><ResetAllStylesButton /></div>
                             </>
                         );
                     })()}
+
+                    <div style={{ marginTop: 'var(--sp-4)' }}>
+                        <FontStyleFields
+                            color={docSettings.oefeningenCustom?.color}
+                            onColorChange={(v) => updateDocSettings({ oefeningenCustom: { ...docSettings.oefeningenCustom, color: v } })}
+                            background={docSettings.oefeningenCustom?.background}
+                            onBackgroundChange={(v) => updateDocSettings({ oefeningenCustom: { ...docSettings.oefeningenCustom, background: v } })}
+                            bold={docSettings.oefeningenCustom?.bold}
+                            onBoldChange={(v) => updateDocSettings({ oefeningenCustom: { ...docSettings.oefeningenCustom, bold: v } })}
+                            italic={docSettings.oefeningenCustom?.italic}
+                            onItalicChange={(v) => updateDocSettings({ oefeningenCustom: { ...docSettings.oefeningenCustom, italic: v } })}
+                            underline={docSettings.oefeningenCustom?.underline}
+                            onUnderlineChange={(v) => updateDocSettings({ oefeningenCustom: { ...docSettings.oefeningenCustom, underline: v } })}
+                        />
+                        <p style={S.hintText}>Kleur, vet, cursief en onderstreept gelden voor tekst in de oefeningen; getekende figuren (getallenlijnen, klokken, MAB-blokjes…) volgen niet altijd mee.</p>
+                    </div>
+
+                    <div style={{ marginTop: 'var(--sp-4)' }}><ResetAllStylesButton /></div>
                 </div>
         </>),
         voettekst: (<>
@@ -638,8 +671,8 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                                                 );
                                             })()}
 
-                                            {/* Per-block text-size override (CSS zoom). Falls back to the global
-                                                'Tekstgrootte oefeningen' when no override is set. */}
+                                            {/* Per-block zoom override. Falls back to the global
+                                                'Zoom oefeningen' when no override is set. */}
                                             {(() => {
                                                 const override: number | undefined = activeBlock.constraints?.bodyFontScale;
                                                 const effective = override ?? docSettings.bodyFontScale ?? 1;
@@ -648,7 +681,7 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                                                     <>
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px' }}>
                                                             <label style={{ ...S.label, marginTop: 0 }}>
-                                                                Tekstgrootte blok ({px} px){override == null ? ' · volgt blad' : ''}
+                                                                Zoom blok ({px} px){override == null ? ' · volgt blad' : ''}
                                                             </label>
                                                             {override != null && (
                                                                 <button

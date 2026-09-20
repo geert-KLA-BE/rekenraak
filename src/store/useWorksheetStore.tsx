@@ -40,6 +40,8 @@ export const DEFAULT_FIELD_WIDTHS: Record<HeaderField, number> = { naam: 240, kl
 export interface RegionStyle {
     fontSize?: number;
     bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
     color?: string;         // text color (from the curated print palette)
     background?: string;    // fill color ('' / undefined = none)
     align?: 'left' | 'center' | 'right';
@@ -96,6 +98,9 @@ export interface DocSettings {
     headerCustom?: RegionStyle;
     titelCustom?: RegionStyle;
     footerCustom?: RegionStyle;
+    // Naam/Klas/Nr/Datum labels, styled independently from the header title (headerCustom) —
+    // a teacher can style the title without the field labels following along. Optional → back-compat.
+    headerVeldenCustom?: RegionStyle;
     // Global content zoom for block bodies (exercise + opdracht-titel); 1 = 100%.
     // A per-block override lives in block.constraints.bodyFontScale. Optional → back-compat.
     bodyFontScale?: number;
@@ -118,6 +123,16 @@ export interface DocSettings {
     // without changing the words in the exercises or tying header and footer together.
     fontFamilyHeader?: string;
     fontFamilyFooter?: string;
+    // The opdracht-titel's own font family, independent from fontFamilyText. Optional →
+    // back-compat: undefined falls back to --font-sheet-text, same as before this existed.
+    fontFamilyTitel?: string;
+    // Naam/Klas/Nr/Datum labels' own font family, independent from fontFamilyHeader (the title).
+    fontFamilyHeaderVelden?: string;
+    // Style-builder overrides for the exercise body (color/fill/bold/italic/underline),
+    // applied on ScaledBlock's own wrapper so it reaches the opdracht-titel and viewer
+    // together via CSS inheritance. Best-effort: viewers that draw figures as SVG with
+    // hardcoded colors (number lines, clocks, MAB blocks, …) won't visually reflect it.
+    oefeningenCustom?: RegionStyle;
     // Page design — free-standing decorative images (photos/logos), each independently
     // draggable, resizable and rotatable directly on the sheet (EditableSheetImage), and
     // stackable either behind or in front of the sheet's own text ('order'). Rides along

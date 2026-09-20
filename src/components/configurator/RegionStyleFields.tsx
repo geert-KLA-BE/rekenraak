@@ -1,9 +1,7 @@
-import Switch from '../ui/Switch';
-import { SwatchRow } from '../ui/Swatch';
 import { useWorksheetStore, type RegionStyle } from '../../store/useWorksheetStore';
-import { PRINT_PALETTE, PRINT_FILLS, STYLE_BOUNDS } from '../../config/printPalette';
+import { STYLE_BOUNDS } from '../../config/printPalette';
 import { ANSWER_SPACE_DEFAULT_PX } from '../viewer/BlockWidthContext';
-import FontFamilyPicker from './FontFamilyPicker';
+import FontStyleFields from './FontStyleFields';
 import { TEXT_FONT_OPTIONS } from '../../config/fontOptions';
 
 // Look-and-feel controls for one printed region. These used to live in a "Stijl
@@ -13,9 +11,8 @@ import { TEXT_FONT_OPTIONS } from '../../config/fontOptions';
 export type StyleRegion = 'header' | 'titel' | 'footer';
 
 const REGION_KEY = { header: 'headerCustom', titel: 'titelCustom', footer: 'footerCustom' } as const;
-// Header and footer each get their own font-family setting (titel has none of its own —
-// it already follows --font-sheet-text via the Opdrachten tab's picker).
-const FONT_FAMILY_KEY = { header: 'fontFamilyHeader', footer: 'fontFamilyFooter' } as const;
+// Each region gets its own independent font-family field.
+const FONT_FAMILY_KEY = { header: 'fontFamilyHeader', footer: 'fontFamilyFooter', titel: 'fontFamilyTitel' } as const;
 // Sizes the sheet falls back to when a region carries no custom style.
 const DEFAULT_SIZE: Record<StyleRegion, number> = { header: 22, titel: 16, footer: 9 };
 
@@ -27,43 +24,19 @@ export default function RegionStyleFields({ region }: { region: StyleRegion }) {
     const cur: RegionStyle = docSettings[REGION_KEY[region]] ?? {};
     const patch = (p: Partial<RegionStyle>) => updateDocSettings({ [REGION_KEY[region]]: { ...cur, ...p } });
     const reset = () => updateDocSettings({ [REGION_KEY[region]]: {} });
+    const fontFamilyKey = FONT_FAMILY_KEY[region];
 
     return (
         <>
-            <Field label={`Tekengrootte: ${cur.fontSize ?? DEFAULT_SIZE[region]}px`}>
-                <input
-                    type="range" min={bounds.fontMin} max={bounds.fontMax}
-                    value={cur.fontSize ?? DEFAULT_SIZE[region]}
-                    onChange={(e) => patch({ fontSize: Number(e.target.value) })}
-                    style={range}
-                />
-            </Field>
-
-            {/* Header and footer each carry their own font-family token (--font-sheet-header /
-                --font-sheet-footer, theme.css) — titel (opdracht-titel) already follows
-                --font-sheet-text via the Opdrachten tab's picker, so it gets no field here. */}
-            {region !== 'titel' && (
-                <Field label="Lettertype">
-                    <FontFamilyPicker
-                        value={docSettings[FONT_FAMILY_KEY[region]] ?? TEXT_FONT_OPTIONS[0].value}
-                        options={TEXT_FONT_OPTIONS}
-                        onChange={(v) => updateDocSettings({ [FONT_FAMILY_KEY[region]]: v })}
-                        ariaLabel="Lettertype" />
-                </Field>
-            )}
-
-            <div style={rowStyle}>
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-main)' }}>Vet</span>
-                <Switch checked={!!cur.bold} onChange={(v) => patch({ bold: v })} aria-label="Vet" />
-            </div>
-
-            <Field label="Tekstkleur">
-                <SwatchRow options={PRINT_PALETTE} value={cur.color ?? '#000000'} onChange={(v) => patch({ color: v })} />
-            </Field>
-
-            <Field label="Vulkleur">
-                <SwatchRow options={PRINT_FILLS} value={cur.background ?? ''} onChange={(v) => patch({ background: v })} />
-            </Field>
+            <FontStyleFields
+                fontSize={{ label: 'Tekengrootte', value: cur.fontSize ?? DEFAULT_SIZE[region], min: bounds.fontMin, max: bounds.fontMax, onChange: (v) => patch({ fontSize: v }) }}
+                fontFamily={{ label: 'Lettertype', value: docSettings[fontFamilyKey] ?? TEXT_FONT_OPTIONS[0].value, options: TEXT_FONT_OPTIONS, onChange: (v) => updateDocSettings({ [fontFamilyKey]: v }) }}
+                color={cur.color} onColorChange={(v) => patch({ color: v })}
+                background={cur.background} onBackgroundChange={(v) => patch({ background: v })}
+                bold={cur.bold} onBoldChange={(v) => patch({ bold: v })}
+                italic={cur.italic} onItalicChange={(v) => patch({ italic: v })}
+                underline={cur.underline} onUnderlineChange={(v) => patch({ underline: v })}
+            />
 
             {/* The footer's side padding IS the print margin, so only header and titel
                 expose padding — changing it on the footer would move the page margin. */}
@@ -98,7 +71,8 @@ export function ResetAllStylesButton() {
             showScores: false, opdrachtTitelStyle: 'regular', showDividers: false,
             headerStyle: 'geen', titlePosition: 'center', titleFieldsGap: 16,
             headerContentGap: 12, blockSpacing: 12, numberBlocks: true, bodyFontScale: 1, answerSpace: ANSWER_SPACE_DEFAULT_PX,
-            headerCustom: undefined, titelCustom: undefined, footerCustom: undefined,
+            headerCustom: undefined, titelCustom: undefined, footerCustom: undefined, oefeningenCustom: undefined,
+            headerVeldenCustom: undefined,
         });
         blocks.forEach((blk) => {
             if (blk.constraints?.bodyFontScale !== undefined || blk.constraints?.answerSpace !== undefined) {
@@ -126,7 +100,6 @@ function Field({ label, children }: { label: React.ReactNode; children: React.Re
     );
 }
 
-const rowStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-4)' };
 const range: React.CSSProperties = { width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' };
 const resetBtn: React.CSSProperties = { padding: '7px 12px', fontSize: 'var(--text-sm)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', border: '1px solid var(--separator)', background: 'var(--bg-surface-2)', color: 'var(--text-muted)' };
 const resetAllBtn: React.CSSProperties = { ...resetBtn, border: '1px solid var(--danger)', color: 'var(--danger)', background: 'transparent' };

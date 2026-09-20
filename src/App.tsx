@@ -317,11 +317,16 @@ export default function App() {
     const LABELS: Record<HeaderField, string> = { naam: 'Naam:', klas: 'Klas:', nummer: 'Nr:', datum: 'Datum:' };
     const visibleFields = order.filter(f => headerData?.[f]);
     if (visibleFields.length === 0) return null;
+    // Own style, independent from the header title (headerCustom/fontFamilyHeader).
+    const labelStyle = overlayRegionStyle({
+      ...styles.sheetHeaderLabel, fontSize: '13px', fontWeight: 700, color: '#000',
+      fontFamily: docSettings.fontFamilyHeaderVelden ?? 'var(--font-sheet-header)',
+    }, docSettings.headerVeldenCustom);
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', rowGap: '8px', width: '100%', justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
         {visibleFields.map(f => (
           <div key={f} style={{ display: 'flex', alignItems: 'flex-end', width: `${widths[f] ?? DEFAULT_FIELD_WIDTHS[f]}px` }}>
-            <span style={styles.sheetHeaderLabel}>{LABELS[f]}</span>
+            <span style={labelStyle}>{LABELS[f]}</span>
             <div style={styles.sheetHeaderLine}></div>
           </div>
         ))}
@@ -492,6 +497,9 @@ export default function App() {
             // own sizes — only the title inherits. A flanking title is a size smaller than
             // a centred one, which is the one thing the old per-h1 sizes were saying.
             fontSize: (docSettings.titlePosition === 'left' || docSettings.titlePosition === 'right') ? '22px' : '24px',
+            // Default look (bold black) when headerCustom carries no override — the <h1>
+            // below inherits all three instead of hardcoding its own, same reasoning as fontSize.
+            fontWeight: 700, color: '#000',
             // 'onderstreept' = one line under the whole header (separates it from the body);
             // 'kader' = full box. All-longhand borders avoid the shorthand/longhand React warning.
             borderRadius: docSettings.headerStyle === 'onderstreept' ? 0 : '6px',
@@ -513,7 +521,7 @@ export default function App() {
               };
               const titleScore = (align: 'left' | 'right') => (hasTitle || showScore) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : 'flex-start', justifyContent: (hasTitle && showScore) ? 'space-between' : (!showScore) ? 'center' : 'flex-end', flexShrink: 0, gridColumn: align === 'right' ? '2' : '1', gridRow: '1' }}>
-                  {hasTitle && <h1 style={{ margin: 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-header)', fontWeight: 700, textAlign: align }}>{headerData!.titel}</h1>}
+                  {hasTitle && <h1 style={{ margin: 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-header)', fontWeight: 'inherit', color: 'inherit', textAlign: align }}>{headerData!.titel}</h1>}
                   {showScore && <div style={styles.scoreBox}>Score: &nbsp; &nbsp; &nbsp; / {totalScore}</div>}
                 </div>
               ) : null;
@@ -558,7 +566,7 @@ export default function App() {
                   {/* The 8px only separates the title from the fields/score row above it;
                       with every field off there is nothing to separate it from and the gap
                       is paper margin pretending to be layout. */}
-                  {hasTitle && <h1 style={{ margin: (centerFields || showScore) ? '8px 0 0' : 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-header)', fontWeight: 700, textAlign: 'center' }}>{headerData!.titel}</h1>}
+                  {hasTitle && <h1 style={{ margin: (centerFields || showScore) ? '8px 0 0' : 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-header)', fontWeight: 'inherit', color: 'inherit', textAlign: 'center' }}>{headerData!.titel}</h1>}
                 </>
               );
             })()}
@@ -604,6 +612,7 @@ export default function App() {
     const brandSlot = footerData?.brandSlot ?? 'left';
     const credit = <span className="footer-credit">Gemaakt met RekenRaak.be</span>;
     return (
+      <>
             <div className="print-tfoot-inner" style={overlayRegionStyle({
               borderTopStyle: 'solid',
               borderTopWidth: docSettings.footerStyle === 'kader' ? '1.5px' : '1px',
@@ -617,6 +626,7 @@ export default function App() {
               <span>{brandSlot === 'center' ? credit : footerSlotText(centerSlot, pageIndex, pageCount)}</span>
               <span>{brandSlot === 'right' ? credit : right}</span>
             </div>
+      </>
     );
   };
 
@@ -670,6 +680,7 @@ export default function App() {
                     fitToPage={block.constraints?.fitToPage === true}
                     fitToWidth={block.constraints?.fitToWidth === true}
                     answerSpacePx={block.constraints?.answerSpace}
+                    customStyle={docSettings.oefeningenCustom}
                   >
                   {/* showInstruction === false hides the title row the way furniture has none;
                       blockOrder still counts the block unless skipNumbering says otherwise, so
@@ -679,6 +690,9 @@ export default function App() {
                     // SYNC with appStyles.instructionDisplay, which inherits it: the size
                     // has to sit on the container the "Tekengrootte" slider writes to.
                     fontSize: 'var(--sheet-size-text)',
+                    // Default look (bold black) when titelCustom carries no override —
+                    // instructionDisplay inherits all three from here.
+                    fontWeight: 700, color: '#000',
                     ...(docSettings.opdrachtTitelStyle === 'boxed' ? { border: '1.5px solid #000', padding: '4px 8px', borderRadius: '3px' } : {}),
                     ...(docSettings.opdrachtTitelStyle === 'underlined' ? { borderBottom: '2px solid #000', paddingBottom: '4px' } : {}),
                   }, docSettings.titelCustom)}>
