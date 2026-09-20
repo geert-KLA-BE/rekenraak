@@ -8,7 +8,7 @@ interface Props {
     onClose: () => void;
 }
 
-const MAX_PRESETS = [10, 20, 100, 1000, 10000, 100000, 1000000];
+const MAX_PRESETS = [10, 20, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
 
 // Global base difficulty, mirroring the real exercise config (NaturalSettings).
 // Values snapshot into each NEW block at add-time (baseApply); existing blocks

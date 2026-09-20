@@ -162,7 +162,7 @@ export default function NaturalSettings({ block, isDivision = false }: Props) {
                             <PopupSelect
                                 clampToLowest
                                 value={maxGetal}
-                                options={[1000, 10000, 100000, 1000000].map(val => ({ value: val, label: `Tot ${val.toLocaleString('nl-BE')}` }))}
+                                options={[1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000].map(val => ({ value: val, label: `Tot ${val.toLocaleString('nl-BE')}` }))}
                                 onChange={(val) => updateConstraint('maxGetal', val)}
                                 ariaLabel={isDivision ? 'Maximum deeltal' : 'Maximum uitkomst'}
                             />

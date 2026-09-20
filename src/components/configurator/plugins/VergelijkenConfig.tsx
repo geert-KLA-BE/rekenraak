@@ -10,7 +10,7 @@ import type { VergelijkenConstraints } from '../../../services/math/constraintTy
 
 interface Props { block: MathBlock; }
 
-const MAX_PRESETS = [100, 1000, 10000, 100000, 1000000];
+const MAX_PRESETS = [100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
 const REP_MAX_PRESETS = [10, 100, 1000];   // representaties: tienden/honderdsten range
 
 export default function VergelijkenConfig({ block }: Props) {

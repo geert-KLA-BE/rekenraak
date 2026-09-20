@@ -21,7 +21,7 @@ export default function NaturalSettings({ block }: Props) {
     // Haal de juiste arrays op (Zijn al gesorteerd Groot -> Klein!)
     const maskPlaces = getMaskPlaces(maxGetal, 'natural');
     const bridgePlaces = getBridgePlaces(maxGetal, 'natural');
-    const maxPresets = [10, 20, 100, 1000, 10000, 100000, 1000000];
+    const maxPresets = [10, 20, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
 
     // Term i mask: legacy operand1/2Mask for 0/1, operandMasks[] beyond (SYNC: maskFor in mathEngine).
     const maskAt = (i: number): Record<string, boolean> =>

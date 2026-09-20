@@ -1,5 +1,4 @@
-// Bounded Dutch number-to-words for the positietabel splitsen variant (0 … 1 000 000).
-// Refine later for edge cases / larger ranges.
+// Dutch number-to-words for the positietabel splitsen variant (0 … 1 miljard).
 
 const ONES = [
     'nul', 'een', 'twee', 'drie', 'vier', 'vijf', 'zes', 'zeven', 'acht', 'negen',
@@ -22,15 +21,25 @@ function underThousand(n: number): string {
     return (h === 1 ? '' : ONES[h]) + 'honderd' + (r ? underHundred(r) : '');
 }
 
+// miljoen/miljard are separate nouns (space before them); duizend attaches to its
+// count instead, same as underThousand's own honderd.
 function intToDutchWords(n: number): string {
     if (n === 0) return 'nul';
-    if (n === 1000000) return 'een miljoen';
-    let out = '';
-    const th = Math.floor(n / 1000);
-    const rest = n % 1000;
-    if (th) out += (th === 1 ? '' : underThousand(th)) + 'duizend';
-    if (rest) out += underThousand(rest);
-    return out || underThousand(n);
+    const mrd = Math.floor(n / 1_000_000_000);
+    const afterMrd = n % 1_000_000_000;
+    const mln = Math.floor(afterMrd / 1_000_000);
+    const afterMln = afterMrd % 1_000_000;
+    const th = Math.floor(afterMln / 1000);
+    const rest = afterMln % 1000;
+
+    const parts: string[] = [];
+    if (mrd) parts.push((mrd === 1 ? 'een' : underThousand(mrd)) + ' miljard');
+    if (mln) parts.push((mln === 1 ? 'een' : underThousand(mln)) + ' miljoen');
+    let tail = '';
+    if (th) tail += (th === 1 ? '' : underThousand(th)) + 'duizend';
+    if (rest) tail += underThousand(rest);
+    if (tail) parts.push(tail);
+    return parts.join(' ');
 }
 
 export function numberToDutchWords(n: number): string {

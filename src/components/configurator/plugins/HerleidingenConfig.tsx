@@ -18,7 +18,7 @@ const OPP_FORMATS = [
     { key: 'vierkant-are', label: 'Vierkant → are (ha/a/ca)' },
     { key: 'are-vierkant', label: 'Are → vierkant' },
 ];
-const SAM_STOPS = [10, 100, 1000, 10000, 100000, 1000000];
+const SAM_STOPS = [10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
 
 export default function HerleidingenConfig({ block }: { block: MathBlock }) {
     const [c, patch] = useConstraints<HerleidingenConstraints>(block);

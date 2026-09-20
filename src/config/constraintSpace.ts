@@ -34,7 +34,7 @@ const MASKS = [{}, { E: true }, { T: true, E: true }];
 // + HrPresetRow. All four operations share one plugin family and one defaults factory.
 const hrShared: OptionSpace = {
     numberType: NUMBER_TYPES,
-    maxGetal: [10, 20, 100, 1000, 10000, 100000, 1000000],
+    maxGetal: [10, 20, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000],
     decimalPlaces: [1, 2, 3],
     bridges: BRIDGE_SETS,
     operand1Mask: MASKS,
@@ -93,7 +93,7 @@ const hrMixed: OptionSpace = {
 const cijferSpace: OptionSpace = {
     operator: OPS,
     numberType: ['natural', 'decimal'],
-    maxRange: [20, 100, 1000, 10000, 100000, 1000000, 1000000000],
+    maxRange: [20, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000],
     decimalPlaces: [1, 2, 3],
     withEstimation: [false, true],
     withRemainder: [false, true],
@@ -137,7 +137,7 @@ const fractionSpace: OptionSpace = {
 // SplitsenConfig — 'splitsen' = decomposing a number into parts (7 → 3 + 4).
 const splitsenSpace: OptionSpace = {
     layout: ['basic', 'splitsboom', 'verliefde-harten', 'positie-tabel', 'positie-benen', 'positie-math'],
-    maxGetal: [10, 20, 100, 1000, 10000, 100000, 1000000],
+    maxGetal: [10, 20, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000],
     fixedTotal: [null, 10],
     rowsPerBox: [1, 4, 8],
     blankPositions: [['right'], ['left'], ['top'], ['left', 'right', 'top']],
@@ -306,7 +306,7 @@ const temperatuurSpace: OptionSpace = {
 
 const plaatswaardeSpace: OptionSpace = {
     subType: ['waarde', 'plaats', 'tabel', 'omcirkelen'],
-    maxGetal: [100, 1000, 10000, 100000, 1000000],
+    maxGetal: [100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000],
     numberMask: MASKS,
     decimalPlaces: [0, 1, 2, 3],
 };
@@ -320,7 +320,7 @@ const evenOnevenSpace: OptionSpace = {
 
 const vergelijkenSpace: OptionSpace = {
     subType: ['getallen', 'kiezen', 'representaties'],
-    maxGetal: [10, 100, 1000, 10000, 100000, 1000000],
+    maxGetal: [10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000],
     numberMask: MASKS,
     chooseTarget: ['grootste', 'kleinste'],
     setSize: [2, 4, 6],
@@ -332,7 +332,7 @@ const vergelijkenSpace: OptionSpace = {
 const afrondenSpace: OptionSpace = {
     subType: ['rooster', 'simpel'],
     numberType: ['natural', 'decimal'],
-    maxGetal: [10, 100, 1000, 10000, 100000, 1000000],
+    maxGetal: [10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000],
     numberMask: MASKS,
     roundTargets: [['T'], ['H'], ['T', 'H'], ['E'], ['E', 't']],
     roosterSize: [3, 6, 12],
@@ -347,7 +347,7 @@ const romeinseSpace: OptionSpace = {
 const herleidingenSpace: OptionSpace = {
     measure: ['lengte', 'inhoud', 'massa', 'oppervlakte'],
     maxEnkel: [10, 100, 1000],
-    maxSamengesteld: [100, 1000, 10000],
+    maxSamengesteld: [100, 1000, 10000, 10000000, 100000000, 1000000000],
     formats: [
         ['enkel-getal'],
         ['enkel-eenheid'],

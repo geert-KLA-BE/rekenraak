@@ -9,7 +9,7 @@ import type { AfrondenConstraints } from '../../../services/math/constraintTypes
 
 interface Props { block: MathBlock; }
 
-const NAT_PRESETS = [100, 1000, 10000, 100000, 1000000];
+const NAT_PRESETS = [100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
 const DEC_PRESETS = [10, 100, 1000];
 
 export default function AfrondenConfig({ block }: Props) {
