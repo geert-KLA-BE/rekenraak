@@ -558,8 +558,9 @@ PDF page count.**
   pages early (blank tails) or overran them; measuring alone cannot run before first paint.
 - `ROW_BUDGET` is deliberately **2 units under** what the body holds: under-estimating puts
   content across the footer, over-estimating only wastes space. The body is
-  `1123 − 96 (8mm head + 54px header + 12px content gap) − 71 (footer)` = **956px** →
-  `ROW_BUDGET = floor(956/24) − 2 = 37`, `PAGE_BODY_PX = 916`. `.page-sheet-body` has no
+  `1123 − 142 (20mm head + 54px header + 12px content gap) − 117 (20mm foot + 15px gap + 26px
+  credit line)` = **864px** (8mm/14mm margins until 2026-09-20 gave 956px) →
+  `ROW_BUDGET = floor(864/24) − 2 = 34`, `PAGE_BODY_PX = 824`. `.page-sheet-body` has no
   vertical padding, so nothing else is subtracted.
 - `rowUnits` per type is **measured**, not guessed: every sidebar leaf rendered at two
   exercise counts; rows are **counted** off the rendered grid (one `.print-row` per
@@ -659,10 +660,13 @@ spanning its `widthUnits`.
   much. Print hides overflow, so a silent clip would otherwise only surface on paper. The
   same pass reports `onBodyMeasure` / `onCellMeasure` back to `useMeasuredHeights`, so after
   the repack the banner only fires for a single block taller than one page.
-- **SYNC:** the screen paddings in `index.css` are the print paddings at 96dpi (**8mm** head
-  since 2026-09-13 — 16 → 12 → 8, after trimming the header region's hidden-field slack —
-  4mm+8mm foot, 14mm sides) and `.page-sheet` has a fixed `height`, not a `min-height`. When
-  they differed, content that fitted on screen ran under the footer on paper.
+- **SYNC:** the screen paddings in `index.css` are the print paddings at 96dpi (**20mm** all
+  round since 2026-09-20 — a normal printed-document margin; it was 8mm head/foot, 14mm sides
+  before that, and 16 → 12 → 8mm before 2026-09-13) and `.page-sheet` has a fixed `height`,
+  not a `min-height`. When they differed, content that fitted on screen ran under the footer
+  on paper. The wider sides shrank `FULL_BLOCK_WIDTH_PX` from 688 to **642** (`794 − 2×76`),
+  which narrowed every width tier and required a `LAYOUT`-table recalibration (see
+  [scripts/width-matrix.mjs](../../scripts/width-matrix.mjs) below).
 - Real **page numbers** are possible for the first time (the browser cannot count pages from
   HTML/CSS; the packer knows index and total).
 
