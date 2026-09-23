@@ -387,11 +387,9 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                         ))}
                     </div>
                     <div style={S.col}>
-                        {/* The credit always prints — only its position is a choice. Whichever
-                            position holds it shows the credit instead of that position's slot. */}
                         <label style={S.footerGroupLabel}>Plaats van "Gemaakt met RekenRaak.be"</label>
                         <div className="seg-group" style={{ marginBottom: '12px' }}>
-                            {([['left', 'Links'], ['center', 'Midden'], ['right', 'Rechts']] as const).map(([v, l]) => (
+                            {([['left', 'Links'], ['center', 'Midden'], ['right', 'Rechts'], ['none', 'Niet tonen']] as const).map(([v, l]) => (
                                 <button key={v} className="seg-btn" aria-pressed={(footerData.brandSlot ?? 'left') === v}
                                     onClick={() => updateFooter({ brandSlot: v })}>{l}</button>
                             ))}

@@ -227,6 +227,13 @@ describe('share link', () => {
         expect(decoded!.mode).toBe('full');
     });
 
+    test('hidden footer credit survives sharing without changing older worksheets', () => {
+        const original = state();
+        const hidden = { ...original, footer: { ...original.footer, brandSlot: 'none' as const } };
+        expect(fileFromShare(encodeShareLink(hidden))!.footer.brandSlot).toBe('none');
+        expect(fileFromShare(encodeShareLink(original))!.footer.brandSlot).toBeUndefined();
+    });
+
     // Same fields as the file round-trip test above, through the share link's lz-string path.
     test('font families and header/titel/footerCustom survive a share link', () => {
         const s = state();

@@ -508,8 +508,7 @@ export interface ClockExercise {
     isManuallyEdited: boolean;
 }
 
-// What a footer slot can show. The LEFT slot is not in this union: it always carries the
-// RekenRaak credit, which is why it takes no setting.
+// What a footer slot can show.
 export type FooterSlot =
     | 'leeg' | 'vrije-tekst' | 'paginanummer'
     | 'school' | 'klas' | 'leerkracht' | 'datum';
@@ -535,9 +534,8 @@ export interface FooterData {
     leftText?: string;
     rightText?: string;
     pageFormat?: PageNumberFormat;
-    // Where the "Gemaakt met RekenRaak.be" credit sits. The credit always appears, but
-    // teachers put it where it suits their sheet. Absent → left, as it always was.
-    brandSlot?: 'left' | 'center' | 'right';
+    // Absent → left for older worksheets; 'none' leaves all three slots available.
+    brandSlot?: 'left' | 'center' | 'right' | 'none';
 }
 
 export type ScaffoldingLevel = 1 | 2 | 3;

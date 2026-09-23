@@ -574,9 +574,7 @@ export default function App() {
     </>
   );
 
-  // Footer is three slots. The left one always carries the credit and takes no setting;
-  // the other two are free. Page numbers are only possible at all because the packer knows
-  // the index and the total — the browser cannot count pages from HTML.
+  // Page numbers are only possible because the packer knows the index and total.
   const footerSlotText = (slot: FooterSlot | undefined, pageIndex: number, pageCount: number): string => {
     switch (slot) {
       case 'vrije-tekst':  return footerData?.centerText ?? '';
@@ -607,8 +605,6 @@ export default function App() {
     const leftSlot: FooterSlot = footerData?.slotLeft ?? 'leeg';
     const right = rightSlot === 'vrije-tekst' ? (footerData?.rightText ?? '') : footerSlotText(rightSlot, pageIndex, pageCount);
     const left = leftSlot === 'vrije-tekst' ? (footerData?.leftText ?? '') : footerSlotText(leftSlot, pageIndex, pageCount);
-    // The credit always prints; only its position is the teacher's choice. Whichever
-    // position holds it shows the credit instead of that position's own slot.
     const brandSlot = footerData?.brandSlot ?? 'left';
     const credit = <span className="footer-credit">Gemaakt met RekenRaak.be</span>;
     return (
