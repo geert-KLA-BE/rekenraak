@@ -320,7 +320,7 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
 
                                 <div style={S.menuDivider} />
                                 <div style={S.sectionLabel}>Over dit project</div>
-                                <a className="ui-hover" style={{ ...S.menuItem, textDecoration: 'none' }} href="/about.html" onClick={() => setMenu(null)}>
+                                <a className="ui-hover" style={{ ...S.menuItem, textDecoration: 'none' }} href={`${import.meta.env.BASE_URL}about.html`} onClick={() => setMenu(null)}>
                                     <Info size={15} /> Over dit project
                                 </a>
                                 <a className="ui-hover" style={{ ...S.menuItem, textDecoration: 'none' }} href="https://forms.gle/jc1LcMXaRG3V3M556" target="_blank" rel="noopener noreferrer" onClick={() => setMenu(null)}>

@@ -69,7 +69,7 @@ export default function WelcomeModal({ onClose, onStartTour, mode = 'welcome' }:
                             controls
                             autoPlay
                             playsInline
-                            src="/rekenraak-demo.mp4"
+                            src={`${import.meta.env.BASE_URL}rekenraak-demo.mp4`}
                             style={{ width: '100%', maxWidth: '720px', height: 'auto', display: 'block', borderRadius: 'var(--radius-sm)', background: '#000' }}
                         />
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '18px', flexWrap: 'wrap', gap: '10px' }}>

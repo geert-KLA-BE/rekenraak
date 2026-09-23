@@ -747,15 +747,15 @@ export default function App() {
   return (
     <>
     <div className="mobile-block">
-      <video className="mobile-block-demo" src="/rekenraak-demo.mp4" autoPlay loop muted playsInline />
+      <video className="mobile-block-demo" src={`${import.meta.env.BASE_URL}rekenraak-demo.mp4`} autoPlay loop muted playsInline />
       <span className="mobile-block-title">RekenRaak werkt op een groot scherm</span>
       <span>Hiermee maak je werkbladen op A4-formaat — daarvoor staan het blad én alle instellingen naast elkaar. Open de tool op een computer, laptop of tablet om aan de slag te gaan.</span>
       <span className="mobile-block-hint">Tip: draai je tablet in liggende stand (landscape).</span>
       {/* A phone must not be a dead end: the static pages read fine on any screen. */}
       <nav className="mobile-block-links" aria-label="Meer over RekenRaak">
-        <a href="/about.html">Over RekenRaak</a>
-        <a href="/faq.html">Veelgestelde vragen</a>
-        <a href="/oefeningen.html">Alle oefeningen</a>
+        <a href={`${import.meta.env.BASE_URL}about.html`}>Over RekenRaak</a>
+        <a href={`${import.meta.env.BASE_URL}faq.html`}>Veelgestelde vragen</a>
+        <a href={`${import.meta.env.BASE_URL}oefeningen.html`}>Alle oefeningen</a>
       </nav>
     </div>
     {welcomeOpen && <WelcomeModal onClose={closeWelcome} onStartTour={startTourFromWelcome} />}

@@ -357,7 +357,7 @@ export default function Sidebar() {
             <a
                 className="ui-hover"
                 style={S.brandFoot}
-                href="/about.html"
+                href={`${import.meta.env.BASE_URL}about.html`}
                 aria-label="Over dit project"
                 title="Over dit project"
             >
