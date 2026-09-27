@@ -8,6 +8,8 @@ in [UpdateState.md](UpdateState.md). Agents: append here, never fix silently.
 
 ## Layout / sheet
 
+- Switching an occupied multi-page worksheet into and out of print media can trigger repeated `useMeasuredHeights` body-first repacks and a measurement cooldown; reproduced with the previous 20mm margins and the new 12mm margins.
+
 ## Docs
 
 - ARCHITECTURE §14 links 13 `src/board/*` files that exist only on branch `whiteboard`

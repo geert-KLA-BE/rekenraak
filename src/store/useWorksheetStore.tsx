@@ -85,6 +85,7 @@ export interface DocSettings {
     footerStyle?: 'geen' | 'lijn' | 'kader';
     titlePosition: 'left' | 'center' | 'right';
     titleFieldsGap: number;
+    titleFieldsVerticalGap?: number;
     headerContentGap: number;
     blockSpacing: number;   // vertical gap between exercise sets (blocks)
     // How the packer places blocks on a page: 'aansluitend' lets a block fill the space

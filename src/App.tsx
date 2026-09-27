@@ -155,28 +155,6 @@ function SplitPopover({ target, onSplit, onClose }: { target: SplitTarget; onSpl
 
 export default function App() {
   const a4Ref = useRef<HTMLDivElement>(null);
-  // Sheet zoom-to-fit. The panels no longer collapse, so on a narrow laptop the sheet is
-  // what gives way: it scales down to whatever width is left instead of hiding a panel.
-  // Floored at 55% — below that the preview stops being readable and shrinking further
-  // would trade one unusable state for another.
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [sheetZoom, setSheetZoom] = useState(1);
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    // The page is a real A4 at 96dpi now; the old 920px card is gone, and measuring
-    // against it made the sheet shrink long before it needed to.
-    const SHEET_PX = 794;
-    const SIDE_PAD = 96;       // .print-scroll horizontal padding
-    const fit = () => {
-      const avail = el.clientWidth - SIDE_PAD;
-      setSheetZoom(Math.max(0.55, Math.min(1, avail / SHEET_PX)));
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
   // Pending continuation of a first print: the modal's "naar afdrukken" button calls it.
   const [printHint, setPrintHint] = useState<(() => void) | null>(null);
   const { handlePrint } = usePrint((proceed) => setPrintHint(() => proceed));
@@ -472,7 +450,7 @@ export default function App() {
           key={img.id}
           image={img}
           editable={editable}
-          zoom={sheetZoom}
+          zoom={1}
           onCommit={(patch) => updatePageImage(img.id, patch)}
         />
       ));
@@ -566,7 +544,7 @@ export default function App() {
                   {/* The 8px only separates the title from the fields/score row above it;
                       with every field off there is nothing to separate it from and the gap
                       is paper margin pretending to be layout. */}
-                  {hasTitle && <h1 style={{ margin: (centerFields || showScore) ? '8px 0 0' : 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-header)', fontWeight: 'inherit', color: 'inherit', textAlign: 'center' }}>{headerData!.titel}</h1>}
+                  {hasTitle && <h1 style={{ margin: (centerFields || showScore) ? `${docSettings.titleFieldsVerticalGap ?? 8}px 0 0` : 0, fontSize: 'inherit', fontFamily: 'var(--font-sheet-header)', fontWeight: 'inherit', color: 'inherit', textAlign: 'center' }}>{headerData!.titel}</h1>}
                 </>
               );
             })()}
@@ -762,11 +740,9 @@ export default function App() {
     {tourOpen && <TourOverlay onClose={closeTour} />}
     <div className="print-root" style={styles.appShell}>
       <div className="print-body-row" style={styles.appBody}>
-      {/* LEFT — the exercise palette, running the FULL height of the window. Its own tab
+        {/* LEFT — the exercise palette, running the FULL height of the window. Its own tab
           strip sits at the top, level with the top bar, so the three columns read as three
-          columns rather than as one bar with things under it. Panels no longer collapse to
-          a hover flyout: teachers on 14" laptops got stuck in it even with the pin, so a
-          narrow window shrinks the sheet instead (see sheetZoom above). */}
+          columns rather than as one bar with things under it. */}
       <div className="no-print" style={{ display: 'flex', height: '100%', flex: '0 0 auto' }}>
         <Sidebar />
       </div>
@@ -784,7 +760,7 @@ export default function App() {
             The TOP is 28px rather than 8px because .page-sheet-tag hangs 20px above the first
             page (plus its ~13px line box) and was clipped to a row of descenders at scroll top.
             The tag is absolutely positioned, so this changes nothing the packer measures. */}
-        <div ref={scrollRef} className="print-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 48px 48px' }}>
+        <div className="print-scroll" style={{ flex: 1, minHeight: 0, overflow: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'safe center', padding: '28px 48px 48px' }}>
 
         {releaseBannerVisible && (
           <div className="no-print" onClick={(e) => e.stopPropagation()} style={bannerStyles.release}>
@@ -806,7 +782,6 @@ export default function App() {
           ref={a4Ref}
           className="print-area-shell"
           style={{
-            zoom: sheetZoom,
             // Cascades to every PageSheet + viewer below it (same DOM on screen and in
             // print, so the print page inherits for free). Only set when the teacher has
             // touched the slider — omitted keys fall back to the CSS token default.

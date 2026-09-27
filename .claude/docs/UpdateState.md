@@ -5,6 +5,8 @@ Most recent entry first.
 
 ---
 
+**2026-09-27** — De afstand tussen een gecentreerde titel en de naamvelden is instelbaar (standaard 8px, ook voor bestaande bladen). Kop- en voettekst staan nu 12mm van de paginarand, met 20mm zijmarges; printgeometrie en paginabudget zijn bijgewerkt.
+
 **2026-09-27** — De documenttitel kan nu onafhankelijk van de naamvelden op elke bladzijde herhaald worden, met dezelfde koptekstopmaak als op de eerste pagina. De bladweergave en printmedia voor meerdere pagina's gecontroleerd; build geslaagd.
 
 **2026-09-23** — GitHub Pages-deploy zonder eigen domein toegevoegd voor `/rekenraak/`: aparte Vite-base, werkende statische links en media, Pages-URL's in metadata/sitemap en een Actions-workflow op `main`. Pages-build, normale build, browserpreview en `npm run check` (1275 tests) gecontroleerd.

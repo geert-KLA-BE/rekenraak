@@ -14,13 +14,13 @@ export type WidthUnits = 1 | 2 | 4;
 // the top; ROW_UNIT_PX is the granularity the cost functions are calibrated in.
 export const ROW_UNIT_PX = 24;
 // The chrome heights are their print padding at 96dpi plus their content, measured on the
-// rendered page (2026-09-20, 20mm normal margins, title + all four name fields): the
-// header is 76px (20mm) above 54px of fields and title plus the 12px content gap = 142px,
-// the footer 15px (4mm) + 76px (20mm) around a ~26px credit line = 117px.
+// rendered page (12mm head/foot edge, title + all four name fields): the header is
+// 45px above 54px of fields and title plus the 12px content gap = 111px,
+// the footer 15px (4mm) + 45px below a ~26px credit line = 86px.
 // SYNC: index.css .page-sheet-head/-foot.
 // There is no VERTICAL body padding (.page-sheet-body is `padding: 0 76px`) — the 32px
 // that used to be subtracted here was fiction; the ROW_BUDGET -2 below is the real slack.
-const BODY_HEIGHT_PX = 1123 - 142 /* header + content gap */ - 117 /* footer */;
+const BODY_HEIGHT_PX = 1123 - 111 /* header + content gap */ - 86 /* footer */;
 // Two units under what the body can actually hold. Under-estimating is the dangerous
 // direction — content crossing the footer — while over-estimating only wastes space.
 export const ROW_BUDGET = Math.floor(BODY_HEIGHT_PX / ROW_UNIT_PX) - 2;

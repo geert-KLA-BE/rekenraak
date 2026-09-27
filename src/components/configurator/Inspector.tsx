@@ -109,7 +109,15 @@ export default function Inspector({ embedded = false }: { embedded?: boolean } =
                             ))}
                         </div>
 
-                        {(docSettings.titlePosition === 'left' || docSettings.titlePosition === 'right') && (
+                        {docSettings.titlePosition === 'center' ? (
+                            <>
+                                <label style={{ ...S.label, marginTop: '12px' }}>Ruimte titel–velden: {docSettings.titleFieldsVerticalGap ?? 8}px</label>
+                                <input type="range" min="0" max="40" step="2"
+                                    value={docSettings.titleFieldsVerticalGap ?? 8}
+                                    onChange={(e) => updateDocSettings({ titleFieldsVerticalGap: Number(e.target.value) })}
+                                    style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
+                            </>
+                        ) : (
                             <>
                                 <label style={{ ...S.label, marginTop: '12px' }}>Marge titel–velden: {docSettings.titleFieldsGap ?? 16}px</label>
                                 <input type="range" min="4" max="64" step="2"

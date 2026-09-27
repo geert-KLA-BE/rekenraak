@@ -96,11 +96,8 @@
   position: absolute; top: -20px; left: 2px;
   font-size: 11px; color: var(--text-muted); user-select: none;
 }
-/* SYNC: the screen paddings are the PRINT paddings at 96dpi (20mm / 4mm / 20mm / 20mm),
-   so the screen body is exactly as tall as the printed one. When they differed, content
-   that fitted on screen ran under the footer on paper. 20mm all round is a normal printed-
-   document margin; it was 8mm top/foot and 14mm sides until 2026-09-20. */
-.page-sheet-head { padding: 76px 76px 0; flex: none; position: relative; }
+/* SYNC: 12mm head/foot edge and 20mm sides match the print paddings at 96dpi. */
+.page-sheet-head { padding: 45px 76px 0; flex: none; position: relative; }
 .page-sheet-body {
   flex: 1; min-height: 0; padding: 0 76px; position: relative;
   /* Clipped on screen exactly as it will be on paper, so what you see is what prints. */
@@ -111,7 +108,7 @@
    inside a page flows any more, which is also why screen == print: the browser never gets
    to make a layout decision of its own. */
 .page-sheet-canvas { position: relative; height: 100%; }
-.page-sheet-foot { flex: none; padding: 15px 76px 76px; position: relative; }
+.page-sheet-foot { flex: none; padding: 15px 76px 45px; position: relative; }
 
 /* Page-design images (EditableSheetImage.tsx) — free-standing, positioned/resized/rotated
    by hand. Inert by default so they never steal clicks meant for the header/footer/body
@@ -835,11 +832,10 @@ textarea:focus-visible,
   .page-sheet:last-of-type { page-break-after: auto; break-after: auto; }
   /* Margins live here, not in @page — the dialog's margin setting silently overrides
      @page, so the margins have to come from the content box. */
-  /* 20mm margins all round (normal printed-document margin). SYNC: .page-sheet-head
-     above and the BODY_HEIGHT_PX derivation in blockLayout.ts. */
-  .page-sheet-head { padding: 20mm 20mm 0 !important; }
+    /* 12mm head/foot edges, 20mm sides. SYNC: screen paddings and blockLayout.ts. */
+    .page-sheet-head { padding: 12mm 20mm 0 !important; }
   .page-sheet-body { padding: 0 20mm !important; }
-  .page-sheet-foot { padding: 4mm 20mm 20mm !important; }
+    .page-sheet-foot { padding: 4mm 20mm 12mm !important; }
   .page-sheet-tag, .page-sheet-warn { display: none !important; }
 
   /* Sets may split across pages freely. */
