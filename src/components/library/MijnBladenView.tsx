@@ -4,7 +4,7 @@ import { useWorksheetStore } from '../../store/useWorksheetStore';
 import Wordmark from '../ui/Wordmark';
 import SheetThumbnail from '../shared/SheetThumbnail';
 import {
-    loadPresets, savePreset, renamePreset, deletePreset, duplicatePreset,
+    loadPresets, savePreset, updatePreset, renamePreset, deletePreset, duplicatePreset,
     exportWorksheetFile, savePresetFromFile, parseWorksheetFile, clearAutosave,
     type Preset,
 } from '../../services/persistence';
@@ -22,6 +22,7 @@ export default function MijnBladenView() {
     const setView = useWorksheetStore((s) => s.setView);
     const loadWorksheet = useWorksheetStore((s) => s.loadWorksheet);
     const clearBlocks = useWorksheetStore((s) => s.clearBlocks);
+    const setSavedPresetId = useWorksheetStore((s) => s.setSavedPresetId);
 
     const [refresh, setRefresh] = useState(0);
     const [search, setSearch] = useState('');
@@ -46,17 +47,25 @@ export default function MijnBladenView() {
     const handleSaveCurrent = () => {
         const st = useWorksheetStore.getState();
         if (st.blocks.length === 0) { window.alert('Het huidige blad is leeg.'); return; }
+        if (st.savedPresetId) {
+            if (!updatePreset(st.savedPresetId, st)) { window.alert('Bewaren mislukt. Controleer of het blad nog bestaat en of er voldoende opslagruimte is.'); return; }
+            bump();
+            return;
+        }
         const name = window.prompt('Naam voor dit blad:', st.header.titel || 'Mijn blad');
         if (name === null) return;
-        savePreset(name, { blocks: st.blocks, header: st.header, footer: st.footer, docSettings: st.docSettings, baseSettings: st.baseSettings, selectedGrade: st.selectedGrade });
+        const saved = savePreset(name, st);
+        if (!saved) { window.alert('Bewaren mislukt. Controleer de opslagruimte van je browser.'); return; }
+        setSavedPresetId(saved.id);
         bump();
     };
 
-    const handleOpen = (p: Preset) => { loadWorksheet(p.payload); close(); };
+    const handleOpen = (p: Preset) => { loadWorksheet(p.payload, p.id); close(); };
 
     const handleNew = () => {
         if (useWorksheetStore.getState().blocks.length > 0 && !window.confirm('Nieuw blad starten? Het huidige (niet-bewaarde) blad wordt gewist.')) return;
         clearBlocks();
+        setSavedPresetId(null);
         clearAutosave();
         close();
     };
@@ -69,7 +78,11 @@ export default function MijnBladenView() {
     };
 
     const handleDelete = (p: Preset) => {
-        if (window.confirm(`"${p.name}" verwijderen?`)) { deletePreset(p.id); bump(); }
+        if (window.confirm(`"${p.name}" verwijderen?`)) {
+            deletePreset(p.id);
+            if (useWorksheetStore.getState().savedPresetId === p.id) setSavedPresetId(null);
+            bump();
+        }
     };
 
     const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {

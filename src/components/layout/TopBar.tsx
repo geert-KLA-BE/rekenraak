@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Sparkle as Sparkles, Eye, EyeSlash as EyeOff, Printer, Check, SquaresFour as LayoutGrid, FileText, Layout as LayoutTemplate, Key, FilePlus, Trash as Trash2, List, FolderOpen, BookOpen, DownloadSimple, UploadSimple, SlidersHorizontal, BookBookmark as BookLock, Question as HelpIcon, ChatText } from '@phosphor-icons/react';
+import { ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Sparkle as Sparkles, Eye, EyeSlash as EyeOff, Printer, Check, FloppyDisk, SquaresFour as LayoutGrid, FileText, Layout as LayoutTemplate, Key, FilePlus, Trash as Trash2, List, FolderOpen, BookOpen, DownloadSimple, UploadSimple, SlidersHorizontal, BookBookmark as BookLock, Question as HelpIcon, ChatText } from '@phosphor-icons/react';
 import { useWorksheetStore } from '../../store/useWorksheetStore';
 import type { SaveState } from '../../store/useWorksheetStore';
-import { encodeShareLink, clearAutosave, exportWorksheet, parseWorksheetFile } from '../../services/persistence';
+import { encodeShareLink, clearAutosave, exportWorksheet, parseWorksheetFile, savePreset, updatePreset } from '../../services/persistence';
 import IconButton from '../ui/IconButton';
 import Switch from '../ui/Switch';
 import MassAddModal from '../massadd/MassAddModal';
 import BaseSettingsModal from './BaseSettingsModal';
 import PageDesignsModal from './PageDesignsModal';
+import ModalShell from '../ui/ModalShell';
 import CurriculumBuilderModal from '../curriculum/CurriculumBuilderModal';
 import { Info } from '@phosphor-icons/react';
 import { useShedStages } from '../../hooks/useShedStages';
@@ -88,6 +89,8 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
     const generateAllBlocks = useWorksheetStore((s) => s.generateAllBlocks);
     const clearBlocks = useWorksheetStore((s) => s.clearBlocks);
     const hasBlocks = useWorksheetStore((s) => s.blocks.length > 0);
+    const savedPresetId = useWorksheetStore((s) => s.savedPresetId);
+    const setSavedPresetId = useWorksheetStore((s) => s.setSavedPresetId);
     const saveState = useWorksheetStore((s) => s.saveState);
     const lastSavedAt = useWorksheetStore((s) => s.lastSavedAt);
     const setView = useWorksheetStore((s) => s.setView);
@@ -101,6 +104,37 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
     const [baseOpen, setBaseOpen] = useState(false);
     const [curriculumOpen, setCurriculumOpen] = useState(false);
     const [pageDesignsOpen, setPageDesignsOpen] = useState(false);
+    const [savedFlash, setSavedFlash] = useState(false);
+    const [saveName, setSaveName] = useState<string | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null);
+
+    const closeSaveModal = () => { setSaveName(null); setSaveError(null); };
+    const handleSaveName = () => {
+        const st = useWorksheetStore.getState();
+        if (saveName === null || st.blocks.length === 0) { closeSaveModal(); return; }
+        const saved = savePreset(saveName, st);
+        if (!saved) { setSaveError('Bewaren mislukt. Controleer de opslagruimte van je browser.'); return; }
+        setSavedPresetId(saved.id);
+        closeSaveModal();
+        setSavedFlash(true);
+        window.setTimeout(() => setSavedFlash(false), 2000);
+    };
+
+    const handleSaveToLibrary = () => {
+        const st = useWorksheetStore.getState();
+        if (st.blocks.length === 0) return;
+        if (st.savedPresetId) {
+            if (!updatePreset(st.savedPresetId, st)) {
+                setSaveError('Bewaren mislukt. Controleer of het blad nog bestaat en of er voldoende opslagruimte is.');
+                return;
+            }
+        } else {
+            setSaveName(st.header.titel || 'Mijn blad');
+            return;
+        }
+        setSavedFlash(true);
+        window.setTimeout(() => setSavedFlash(false), 2000);
+    };
 
     const handleExport = () => {
         const st = useWorksheetStore.getState();
@@ -144,6 +178,7 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
     const handleNewSheet = () => {
         if (!hasBlocks || window.confirm('Nieuw blad starten? De huidige werkbundel wordt gewist.')) {
             clearBlocks();
+            setSavedPresetId(null);
             clearAutosave();
         }
     };
@@ -383,6 +418,15 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
                     variant={showSolutions ? 'active' : 'neutral'}
                 />
 
+                <IconButton
+                    icon={savedFlash ? Check : FloppyDisk}
+                    label={savedFlash ? 'Bewaard in Mijn bladen' : savedPresetId ? 'Bewaar wijzigingen in Mijn bladen' : 'Bewaar in Mijn bladen'}
+                    visibleLabel={iconOnly ? undefined : savedFlash ? 'Bewaard' : 'Bewaar'}
+                    onClick={handleSaveToLibrary}
+                    disabled={!hasBlocks}
+                    variant="secondary"
+                />
+
                 {/* Afdrukken — single button; choose worksheet vs worksheet+solutions.
                     Keeps its accent fill (variant="primary") at every stage — it's the one
                     primary action — but its label sheds like everything else at stage 1. */}
@@ -434,11 +478,30 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
             {baseOpen && <BaseSettingsModal onClose={() => setBaseOpen(false)} />}
             {curriculumOpen && <CurriculumBuilderModal onClose={() => setCurriculumOpen(false)} />}
             {pageDesignsOpen && <PageDesignsModal onClose={() => setPageDesignsOpen(false)} />}
+            {(saveName !== null || saveError) && (
+                <ModalShell onClose={closeSaveModal} ariaLabel="Blad bewaren" maxWidth={360}>
+                    <form style={{ padding: 'var(--sp-5)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }} onSubmit={(e) => { e.preventDefault(); handleSaveName(); }}>
+                        <h2 style={{ margin: 0, fontSize: 'var(--text-lg)' }}>Blad bewaren</h2>
+                        {saveName !== null && (
+                            <input autoFocus type="text" aria-label="Naam voor dit blad" value={saveName} maxLength={80}
+                                onChange={(e) => setSaveName(e.target.value)}
+                                style={{ padding: '8px 10px', fontSize: 'var(--text-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--separator)', background: 'var(--bg-surface)', color: 'var(--text-main)' }} />
+                        )}
+                        {saveError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: 'var(--text-sm)' }}>{saveError}</p>}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--sp-2)' }}>
+                            <button type="button" style={S.saveCancel} onClick={closeSaveModal}>{saveName !== null ? 'Annuleren' : 'Sluiten'}</button>
+                            {saveName !== null && <button type="submit" style={S.saveConfirm}>Bewaren</button>}
+                        </div>
+                    </form>
+                </ModalShell>
+            )}
         </div>
     );
 }
 
 const S = {
+    saveCancel: { padding: '8px 14px', border: '1px solid var(--separator)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-surface)', color: 'var(--text-main)', cursor: 'pointer', fontSize: 'var(--text-sm)' } as React.CSSProperties,
+    saveConfirm: { padding: '8px 14px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontSize: 'var(--text-sm)', fontWeight: 600 } as React.CSSProperties,
     bar: {
         display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'stretch',
         // SYNC: --bar-h is what .panel-head uses, so the three column headers share a

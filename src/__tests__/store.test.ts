@@ -3,6 +3,7 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useWorksheetStore } from '../store/useWorksheetStore';
 import { REGISTRY } from '../config/exerciseRegistry';
 import { regenerateBlock } from '../services/generateDispatch';
+import { loadAutosave, loadPresets, savePreset, updatePreset } from '../services/persistence';
 
 // The store touches localStorage (autosave, sidebar-preview) on import, hence jsdom.
 //
@@ -414,6 +415,41 @@ describe('autosave status', () => {
 
         expect(useWorksheetStore.getState().saveState).toBe('error');
         expect(useWorksheetStore.getState().lastSavedAt).toBe(savedAt);
+    });
+});
+
+describe('named worksheet saves', () => {
+    beforeEach(() => { localStorage.clear(); seed(1); });
+
+    test('saving an opened sheet overwrites the same library entry and preserves its name', () => {
+        const current = useWorksheetStore.getState();
+        const saved = savePreset('Mijn blad', current);
+        expect(saved).not.toBeNull();
+        current.loadWorksheet(saved!.payload, saved!.id);
+        useWorksheetStore.getState().updateHeader({ titel: 'Nieuwe titel' });
+
+        expect(updatePreset(saved!.id, useWorksheetStore.getState())).toBe(true);
+        expect(loadPresets()).toHaveLength(1);
+        expect(loadPresets()[0]).toMatchObject({ id: saved!.id, name: 'Mijn blad', payload: { header: { titel: 'Nieuwe titel' } } });
+    });
+
+    test('the named sheet identity survives autosave and clears for imported sheets', () => {
+        const current = useWorksheetStore.getState();
+        const saved = savePreset('Mijn blad', current)!;
+        current.setSavedPresetId(saved.id);
+        expect(loadAutosave()?.presetId).toBe(saved.id);
+
+        current.loadWorksheet(saved.payload);
+        expect(useWorksheetStore.getState().savedPresetId).toBeNull();
+    });
+
+    test('an unavailable library entry or refused write does not report a successful update', () => {
+        const current = useWorksheetStore.getState();
+        expect(updatePreset('missing', current)).toBe(false);
+        const saved = savePreset('Mijn blad', current)!;
+        const storageWrite = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceededError'); });
+        expect(updatePreset(saved.id, current)).toBe(false);
+        storageWrite.mockRestore();
     });
 });
 

@@ -76,6 +76,7 @@ export interface SerialisableState {
 export interface AutosaveRecord {
     savedAt: string;
     payload: WorksheetFile;
+    presetId?: string;
 }
 
 export interface Preset {
@@ -216,9 +217,9 @@ export function parseWorksheetFile(json: string): WorksheetFile {
 
 /** Returns false when the write failed (quota full, storage unavailable) so the top bar
     can say so instead of showing a green "bewaard" dot over a sheet that was never saved. */
-export function saveAutosave(state: SerialisableState, curriculum?: CurriculumLock | null): boolean {
+export function saveAutosave(state: SerialisableState, curriculum?: CurriculumLock | null, presetId?: string | null): boolean {
     try {
-        const record: AutosaveRecord = { savedAt: new Date().toISOString(), payload: buildPayload(state, 'full', curriculum ?? undefined) };
+        const record: AutosaveRecord = { savedAt: new Date().toISOString(), payload: buildPayload(state, 'full', curriculum ?? undefined), ...(presetId ? { presetId } : {}) };
         localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(record));
         return true;
     } catch { return false; }
@@ -253,11 +254,11 @@ export function loadPresets(): Preset[] {
     } catch { return []; }
 }
 
-function persistPresets(list: Preset[]): void {
-    try { localStorage.setItem(PRESETS_KEY, JSON.stringify(list)); } catch { /* ignore */ }
+function persistPresets(list: Preset[]): boolean {
+    try { localStorage.setItem(PRESETS_KEY, JSON.stringify(list)); return true; } catch { return false; }
 }
 
-export function savePreset(name: string, state: SerialisableState): Preset {
+export function savePreset(name: string, state: SerialisableState): Preset | null {
     const list = loadPresets();
     const trimmed = (name || '').trim() || (state.header.titel || 'Naamloos').trim() || 'Naamloos';
     const entry: Preset = {
@@ -270,8 +271,21 @@ export function savePreset(name: string, state: SerialisableState): Preset {
     const next = [...list, entry].sort((a, b) => a.savedAt.localeCompare(b.savedAt));
     // Drop oldest when exceeding the cap so the most recent 20 survive.
     const trimmedList = next.slice(-MAX_PRESETS);
-    persistPresets(trimmedList);
-    return entry;
+    return persistPresets(trimmedList) ? entry : null;
+}
+
+export function updatePreset(id: string, state: SerialisableState): boolean {
+    const list = loadPresets();
+    const index = list.findIndex(p => p.id === id);
+    if (index === -1) return false;
+    const updated: Preset = {
+        ...list[index],
+        savedAt: new Date().toISOString(),
+        blockCount: state.blocks.length,
+        payload: buildPayload(state),
+    };
+    list[index] = updated;
+    return persistPresets(list);
 }
 
 export function deletePreset(id: string): void {

@@ -172,6 +172,7 @@ interface WorksheetState {
     draftBlocks: MathBlock[];
     showSolutions: boolean;
     view: WorksheetView;             // active full-screen view (UI-only, not persisted)
+    savedPresetId: string | null;     // named library entry; autosave carries this across reloads
     sidebarPreview: boolean;         // show a live example card when hovering a sidebar leaf (localStorage-backed)
     saveState: SaveState;            // autosave status for the top-bar tracker (UI-only)
     lastSavedAt: number | null;      // epoch ms of last successful autosave (UI-only)
@@ -215,7 +216,8 @@ interface WorksheetState {
     // survives the curriculum lock, exactly like reorder/swap.
     splitBlock: (id: string, atIndex: number) => void;
     generateAllBlocks: () => void;
-    loadWorksheet: (file: { blocks: MathBlock[]; header: HeaderData; footer: FooterData; docSettings: DocSettings; baseSettings?: BaseSettings; curriculum?: CurriculumLock; selectedGrade?: Leerjaar | null }) => void;
+    loadWorksheet: (file: { blocks: MathBlock[]; header: HeaderData; footer: FooterData; docSettings: DocSettings; baseSettings?: BaseSettings; curriculum?: CurriculumLock; selectedGrade?: Leerjaar | null }, presetId?: string) => void;
+    setSavedPresetId: (id: string | null) => void;
     updateHeader: (updates: Partial<HeaderData>) => void;
     updateFooter: (updates: Partial<FooterData>) => void;
     updateDocSettings: (updates: Partial<DocSettings>) => void;
@@ -291,6 +293,7 @@ export const useWorksheetStore = create<WorksheetState>((set, get) => ({
     draftBlocks: [],
     showSolutions: false,
     view: 'editor',
+    savedPresetId: null,
     sidebarPreview: INITIAL_SIDEBAR_PREVIEW,
     saveState: 'idle',
     lastSavedAt: null,
@@ -547,7 +550,7 @@ export const useWorksheetStore = create<WorksheetState>((set, get) => ({
     setDraftBlocks: (blocks) => set({ draftBlocks: blocks }),
     clearDraftBlocks: () => set({ draftBlocks: [] }),
     toggleBlockLock: (id) => set((state) => ({ blocks: state.blocks.map(b => b.id === id ? { ...b, locked: !b.locked } : b) })),
-    loadWorksheet: (file) => set(() => {
+    loadWorksheet: (file, presetId) => set(() => {
         // Some callers (library cards, templates) hand over a payload that never passed the
         // versioned migration, so widths from the old 6-unit grid can still arrive here.
         const blocks = file.blocks.map(b => {
@@ -565,6 +568,7 @@ export const useWorksheetStore = create<WorksheetState>((set, get) => ({
             // Set the grade value directly — base is already restored above, so we must
             // NOT re-run setSelectedGrade's preset seeding here.
             selectedGrade: file.selectedGrade ?? null,
+            savedPresetId: presetId ?? null,
             activeBlockId: null,
             _history: [blocks],
             _historyIndex: 0,
@@ -607,6 +611,14 @@ export const useWorksheetStore = create<WorksheetState>((set, get) => ({
     setBladSection: (s) => set({ bladSection: s }),
     setShowSolutions: (show) => set({ showSolutions: show }),
     setView: (view) => set({ view }),
+    setSavedPresetId: (id) => {
+        set({ savedPresetId: id });
+        const state = get();
+        if (state.blocks.length > 0) {
+            const ok = saveAutosave({ blocks: state.blocks, header: state.header, footer: state.footer, docSettings: state.docSettings, baseSettings: state.baseSettings, selectedGrade: state.selectedGrade }, state.curriculum, id);
+            set(ok ? { saveState: 'saved', lastSavedAt: Date.now() } : { saveState: 'error' });
+        }
+    },
     setBlockPages: (pages) => set({ blockPages: pages }),
     setIgnoreMinWidth: (on) => set({ debugIgnoreMinWidth: on }),
     setSidebarPreview: (on) => {
@@ -679,7 +691,7 @@ useWorksheetStore.subscribe((state, prev) => {
     if (state.saveState !== 'saving') useWorksheetStore.setState({ saveState: 'saving' });
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(() => {
-        const ok = saveAutosave({ blocks: state.blocks, header: state.header, footer: state.footer, docSettings: state.docSettings, baseSettings: state.baseSettings, selectedGrade: state.selectedGrade }, state.curriculum);
+        const ok = saveAutosave({ blocks: state.blocks, header: state.header, footer: state.footer, docSettings: state.docSettings, baseSettings: state.baseSettings, selectedGrade: state.selectedGrade }, state.curriculum, useWorksheetStore.getState().savedPresetId);
         // lastSavedAt stays put on failure — it dates the last snapshot that really is on disk.
         useWorksheetStore.setState(ok ? { saveState: 'saved', lastSavedAt: Date.now() } : { saveState: 'error' });
     }, 1500);

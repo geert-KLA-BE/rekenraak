@@ -88,7 +88,7 @@ export default function HelpModal({ onClose, onStartTour, onShowVideo }: Props) 
                             Je werk wordt voortdurend in je browser bewaard — bovenaan zie je de chip <strong>Automatisch bewaard</strong>. Sluit je per ongeluk het tabblad, dan staat alles er nog wanneer je terugkomt.
                         </Section>
                         <Section title="2. Mijn bladen">
-                            Via <strong>Meer → Mijn bladen</strong> open je je eigen bibliotheek. Bewaar het huidige blad, of open, hernoem, dupliceer en verwijder een bewaard blad. Elk blad krijgt een miniatuur. Je kan tot 50 bladen bewaren.
+                            Met <strong>Bewaar</strong> bovenaan sla je het huidige blad rechtstreeks op in Mijn bladen. Open je een bewaard blad, dan werkt Bewaar datzelfde blad bij. Via <strong>Meer → Mijn bladen</strong> kan je bladen openen, hernoemen, dupliceren en verwijderen. Je kan tot 50 bladen bewaren.
                         </Section>
                         <Section title="3. Kant-en-klare bladen">
                             Via <strong>Meer → Kant-en-klare bladen</strong> kies je een kant-en-klaar voorbeeldblad. Filter op leerjaar, rekenmethode of domein. <strong>Gebruik sjabloon</strong> laadt het blad in de editor — daarna pas je het vrij aan en bewaar je het bij Mijn bladen.
