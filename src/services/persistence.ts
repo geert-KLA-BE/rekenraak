@@ -180,6 +180,38 @@ export function exportWorksheet(state: SerialisableState): void {
     downloadJson(`werkbundel-${safeSlug(state.header.titel)}-${todayStamp()}${WORKSHEET_FILE_EXT}`, JSON.stringify(buildPayload(state), null, 2));
 }
 
+export type WorksheetFileHandle = Pick<FileSystemFileHandle, 'name' | 'getFile' | 'createWritable'>;
+
+export async function openWorksheetFromPicker(): Promise<{ file: WorksheetFile; handle: WorksheetFileHandle } | null> {
+    const picker = (window as Window & { showOpenFilePicker?: (options: object) => Promise<FileSystemFileHandle[]> }).showOpenFilePicker;
+    if (!picker) return null;
+    const [handle] = await picker({
+        multiple: false,
+        types: [{ description: 'RekenRaak-werkblad', accept: { 'application/json': [WORKSHEET_FILE_EXT, '.json'] } }],
+    });
+    const file = await handle.getFile();
+    return { file: parseWorksheetFile(await file.text()), handle };
+}
+
+export async function saveWorksheetToFile(state: SerialisableState, handle?: WorksheetFileHandle | null): Promise<{ handle: WorksheetFileHandle | null; downloaded: boolean }> {
+    let target = handle;
+    if (!target) {
+        const picker = (window as Window & { showSaveFilePicker?: (options: object) => Promise<FileSystemFileHandle> }).showSaveFilePicker;
+        if (!picker) {
+            exportWorksheet(state);
+            return { handle: null, downloaded: true };
+        }
+        target = await picker({
+            suggestedName: `werkbundel-${safeSlug(state.header.titel)}${WORKSHEET_FILE_EXT}`,
+            types: [{ description: 'RekenRaak-werkblad', accept: { 'application/json': [WORKSHEET_FILE_EXT] } }],
+        });
+    }
+    const writable = await target.createWritable();
+    await writable.write(JSON.stringify(buildPayload(state), null, 2));
+    await writable.close();
+    return { handle: target, downloaded: false };
+}
+
 // Export an already-built WorksheetFile (e.g. a saved-sheet payload from the library)
 // without a lossy rebuild through SerialisableState.
 export function exportWorksheetFile(file: WorksheetFile, title: string): void {

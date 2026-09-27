@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { MathBlock, Equation, CijferExercise, FooterData, LayoutPreset } from '../services/math/types';
 import { generateForBlock, generateExtra, GENERATION_FAILED } from '../services/generateDispatch';
 import { REGISTRY } from '../config/exerciseRegistry';
-import { saveAutosave, type CurriculumLock } from '../services/persistence';
+import { saveAutosave, type CurriculumLock, type WorksheetFileHandle } from '../services/persistence';
 import { baseApply, DEFAULT_BASE, type BaseSettings } from '../config/baseSettings';
 import { GRADE_PRESETS, type Leerjaar } from '../config/gradePresets';
 import { resolveInstruction } from '../config/instructionPresets';
@@ -173,6 +173,7 @@ interface WorksheetState {
     showSolutions: boolean;
     view: WorksheetView;             // active full-screen view (UI-only, not persisted)
     savedPresetId: string | null;     // named library entry; autosave carries this across reloads
+    fileHandle: WorksheetFileHandle | null;
     sidebarPreview: boolean;         // show a live example card when hovering a sidebar leaf (localStorage-backed)
     saveState: SaveState;            // autosave status for the top-bar tracker (UI-only)
     lastSavedAt: number | null;      // epoch ms of last successful autosave (UI-only)
@@ -218,6 +219,7 @@ interface WorksheetState {
     generateAllBlocks: () => void;
     loadWorksheet: (file: { blocks: MathBlock[]; header: HeaderData; footer: FooterData; docSettings: DocSettings; baseSettings?: BaseSettings; curriculum?: CurriculumLock; selectedGrade?: Leerjaar | null }, presetId?: string) => void;
     setSavedPresetId: (id: string | null) => void;
+    setFileHandle: (handle: WorksheetFileHandle | null) => void;
     updateHeader: (updates: Partial<HeaderData>) => void;
     updateFooter: (updates: Partial<FooterData>) => void;
     updateDocSettings: (updates: Partial<DocSettings>) => void;
@@ -294,6 +296,7 @@ export const useWorksheetStore = create<WorksheetState>((set, get) => ({
     showSolutions: false,
     view: 'editor',
     savedPresetId: null,
+    fileHandle: null,
     sidebarPreview: INITIAL_SIDEBAR_PREVIEW,
     saveState: 'idle',
     lastSavedAt: null,
@@ -569,6 +572,7 @@ export const useWorksheetStore = create<WorksheetState>((set, get) => ({
             // NOT re-run setSelectedGrade's preset seeding here.
             selectedGrade: file.selectedGrade ?? null,
             savedPresetId: presetId ?? null,
+            fileHandle: null,
             activeBlockId: null,
             _history: [blocks],
             _historyIndex: 0,
@@ -619,6 +623,7 @@ export const useWorksheetStore = create<WorksheetState>((set, get) => ({
             set(ok ? { saveState: 'saved', lastSavedAt: Date.now() } : { saveState: 'error' });
         }
     },
+    setFileHandle: (handle) => set({ fileHandle: handle }),
     setBlockPages: (pages) => set({ blockPages: pages }),
     setIgnoreMinWidth: (on) => set({ debugIgnoreMinWidth: on }),
     setSidebarPreview: (on) => {

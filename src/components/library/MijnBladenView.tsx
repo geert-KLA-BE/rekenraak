@@ -23,6 +23,7 @@ export default function MijnBladenView() {
     const loadWorksheet = useWorksheetStore((s) => s.loadWorksheet);
     const clearBlocks = useWorksheetStore((s) => s.clearBlocks);
     const setSavedPresetId = useWorksheetStore((s) => s.setSavedPresetId);
+    const setFileHandle = useWorksheetStore((s) => s.setFileHandle);
 
     const [refresh, setRefresh] = useState(0);
     const [search, setSearch] = useState('');
@@ -66,6 +67,7 @@ export default function MijnBladenView() {
         if (useWorksheetStore.getState().blocks.length > 0 && !window.confirm('Nieuw blad starten? Het huidige (niet-bewaarde) blad wordt gewist.')) return;
         clearBlocks();
         setSavedPresetId(null);
+        setFileHandle(null);
         clearAutosave();
         close();
     };
@@ -110,7 +112,7 @@ export default function MijnBladenView() {
             <header style={S.topbar}>
                 <div style={S.brand}>
                     <Wordmark height={28} />
-                    <span style={S.crumb}>Menu / <b>Mijn bladen</b></span>
+                    <span style={S.crumb}>Menu / <b>Mijn bladen (deze browser)</b></span>
                 </div>
                 <div style={S.topActions}>
                     <button style={S.ghostBtn} onClick={handleSaveCurrent}><FloppyDisk size={15} /> Huidig blad bewaren</button>
@@ -123,7 +125,7 @@ export default function MijnBladenView() {
                 <div style={S.subhead}>
                     <div>
                         <h1 style={S.h1}>Mijn bladen</h1>
-                        <span style={S.subMeta}>{presets.length} bewaard · lokaal opgeslagen</span>
+                        <span style={S.subMeta}>{presets.length} bewaard in deze browser · geen bestanden op je toestel</span>
                     </div>
                     <div style={S.controls}>
                         <input style={S.search} placeholder="🔎 Zoek in je bladen…" value={search} onChange={(e) => setSearch(e.target.value)} />

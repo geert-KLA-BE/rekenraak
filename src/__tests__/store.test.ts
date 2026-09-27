@@ -443,6 +443,15 @@ describe('named worksheet saves', () => {
         expect(useWorksheetStore.getState().savedPresetId).toBeNull();
     });
 
+    test('loading another sheet releases the previously selected file', () => {
+        const current = useWorksheetStore.getState();
+        current.setFileHandle({ name: 'oud.rekenraak', getFile: vi.fn(), createWritable: vi.fn() });
+        expect(useWorksheetStore.getState().fileHandle?.name).toBe('oud.rekenraak');
+
+        current.loadWorksheet({ blocks: [], header: current.header, footer: current.footer, docSettings: current.docSettings });
+        expect(useWorksheetStore.getState().fileHandle).toBeNull();
+    });
+
     test('an unavailable library entry or refused write does not report a successful update', () => {
         const current = useWorksheetStore.getState();
         expect(updatePreset('missing', current)).toBe(false);

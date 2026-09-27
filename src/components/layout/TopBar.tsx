@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Sparkle as Sparkles, Eye, EyeSlash as EyeOff, Printer, Check, FloppyDisk, SquaresFour as LayoutGrid, FileText, Layout as LayoutTemplate, Key, FilePlus, Trash as Trash2, List, FolderOpen, BookOpen, DownloadSimple, UploadSimple, SlidersHorizontal, BookBookmark as BookLock, Question as HelpIcon, ChatText } from '@phosphor-icons/react';
 import { useWorksheetStore } from '../../store/useWorksheetStore';
 import type { SaveState } from '../../store/useWorksheetStore';
-import { encodeShareLink, clearAutosave, exportWorksheet, parseWorksheetFile, savePreset, updatePreset } from '../../services/persistence';
+import { encodeShareLink, clearAutosave, openWorksheetFromPicker, parseWorksheetFile, savePreset, saveWorksheetToFile, updatePreset } from '../../services/persistence';
 import IconButton from '../ui/IconButton';
 import Switch from '../ui/Switch';
 import MassAddModal from '../massadd/MassAddModal';
@@ -24,9 +24,7 @@ interface Props {
 // sheds width relative to the last, which is what lets useShedStages' hysteresis work.
 const STAGE_COUNT = 4;
 
-// Autosave refused the write (browser storage full): the only way out is an explicit
-// file export, so the tooltip says that instead of a generic failure.
-const SAVE_FAILED_TEXT = 'Kon niet bewaren (opslag vol?) — bewaar als bestand.';
+const SAVE_FAILED_TEXT = 'Herstelkopie in deze browser mislukt (opslag vol?). Bewaar als bestand.';
 
 // Shared between the centre-track (stage 0-1) and the under-bar line (stage 2-3) so the
 // save-status colour/tooltip logic isn't duplicated.
@@ -35,10 +33,10 @@ function SaveIndicator({ saveState, lastSavedAt, showText }: { saveState: SaveSt
         <div
             style={S.saveChip}
             title={saveState === 'error' ? SAVE_FAILED_TEXT
-                : lastSavedAt ? `Laatst bewaard om ${new Date(lastSavedAt).toLocaleTimeString('nl-BE')}` : 'Wijzigingen worden automatisch lokaal bewaard'}
+                : lastSavedAt ? `Herstelkopie in deze browser om ${new Date(lastSavedAt).toLocaleTimeString('nl-BE')}` : 'Herstelkopie wordt automatisch in deze browser bewaard'}
         >
             <span style={{ ...S.saveDot, background: saveState === 'error' ? 'var(--danger)' : saveState === 'saving' ? '#d97706' : saveState === 'saved' ? '#16a34a' : 'var(--text-muted)' }} />
-            {showText && <span>{saveState === 'error' ? 'Niet bewaard' : saveState === 'saving' ? 'Bewaren…' : 'Automatisch bewaard'}</span>}
+            {showText && <span>{saveState === 'error' ? 'Geen herstelkopie' : saveState === 'saving' ? 'Herstelkopie maken…' : 'Herstelkopie in browser'}</span>}
         </div>
     );
 }
@@ -91,6 +89,8 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
     const hasBlocks = useWorksheetStore((s) => s.blocks.length > 0);
     const savedPresetId = useWorksheetStore((s) => s.savedPresetId);
     const setSavedPresetId = useWorksheetStore((s) => s.setSavedPresetId);
+    const fileHandle = useWorksheetStore((s) => s.fileHandle);
+    const setFileHandle = useWorksheetStore((s) => s.setFileHandle);
     const saveState = useWorksheetStore((s) => s.saveState);
     const lastSavedAt = useWorksheetStore((s) => s.lastSavedAt);
     const setView = useWorksheetStore((s) => s.setView);
@@ -105,6 +105,7 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
     const [curriculumOpen, setCurriculumOpen] = useState(false);
     const [pageDesignsOpen, setPageDesignsOpen] = useState(false);
     const [savedFlash, setSavedFlash] = useState(false);
+    const [fileFlash, setFileFlash] = useState<string | null>(null);
     const [saveName, setSaveName] = useState<string | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -136,9 +137,28 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
         window.setTimeout(() => setSavedFlash(false), 2000);
     };
 
-    const handleExport = () => {
+    const handleSaveFile = async (saveAs = false) => {
         const st = useWorksheetStore.getState();
-        exportWorksheet({ blocks: st.blocks, header: st.header, footer: st.footer, docSettings: st.docSettings, baseSettings: st.baseSettings, selectedGrade: st.selectedGrade });
+        try {
+            const result = await saveWorksheetToFile(st, saveAs ? null : st.fileHandle);
+            setFileHandle(result.handle);
+            setFileFlash(result.downloaded ? 'Download gestart' : 'Bestand bewaard');
+            window.setTimeout(() => setFileFlash(null), 2500);
+        } catch (error) {
+            if ((error as DOMException).name !== 'AbortError') setSaveError(`Bestand bewaren mislukt: ${(error as Error).message}`);
+        }
+    };
+    const handleOpenFile = async () => {
+        if (typeof (window as Window & { showOpenFilePicker?: unknown }).showOpenFilePicker !== 'function') { menuFileRef.current?.click(); return; }
+        try {
+            const opened = await openWorksheetFromPicker();
+            if (opened && window.confirm('Huidige werkbundel wordt vervangen. Doorgaan?')) {
+                loadWorksheet(opened.file);
+                setFileHandle(opened.handle);
+            }
+        } catch (error) {
+            if ((error as DOMException).name !== 'AbortError') window.alert(`Openen mislukt: ${(error as Error).message}`);
+        }
     };
     const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -179,6 +199,7 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
         if (!hasBlocks || window.confirm('Nieuw blad starten? De huidige werkbundel wordt gewist.')) {
             clearBlocks();
             setSavedPresetId(null);
+            setFileHandle(null);
             clearAutosave();
         }
     };
@@ -307,11 +328,16 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
 
                                 <div style={S.menuDivider} />
                                 <div style={S.sectionLabel}>Bestand</div>
-                                <button className="ui-hover" style={S.menuItem} onClick={() => { setMenu(null); menuFileRef.current?.click(); }}>
-                                    <UploadSimple size={15} /> Importeren…
+                                <button className="ui-hover" style={S.menuItem} onClick={() => { setMenu(null); void handleOpenFile(); }}>
+                                    <UploadSimple size={15} /> Open bestand…
                                 </button>
-                                <button className="ui-hover" style={S.menuItem} onClick={() => { setMenu(null); handleExport(); }}>
-                                    <DownloadSimple size={15} /> Exporteren…
+                                <button className="ui-hover" style={S.menuItem} onClick={() => { setMenu(null); void handleSaveFile(true); }}>
+                                    <DownloadSimple size={15} /> Bewaar als bestand…
+                                </button>
+                                <div style={S.menuDivider} />
+                                <div style={S.sectionLabel}>In deze browser</div>
+                                <button className="ui-hover" style={S.menuItem} onClick={() => { setMenu(null); handleSaveToLibrary(); }}>
+                                    <FloppyDisk size={15} /> {savedFlash ? 'Bewaard in Mijn bladen' : savedPresetId ? 'Werk bij in Mijn bladen' : 'Bewaar in Mijn bladen'}
                                 </button>
 
                                 <div style={S.menuDivider} />
@@ -419,11 +445,10 @@ export default function TopBar({ onPrint, onOpenHelp }: Props) {
                 />
 
                 <IconButton
-                    icon={savedFlash ? Check : FloppyDisk}
-                    label={savedFlash ? 'Bewaard in Mijn bladen' : savedPresetId ? 'Bewaar wijzigingen in Mijn bladen' : 'Bewaar in Mijn bladen'}
-                    visibleLabel={iconOnly ? undefined : savedFlash ? 'Bewaard' : 'Bewaar'}
-                    onClick={handleSaveToLibrary}
-                    disabled={!hasBlocks}
+                    icon={fileFlash === 'Bestand bewaard' ? Check : FloppyDisk}
+                    label={fileFlash ?? (fileHandle ? `Bewaar in ${fileHandle.name}` : 'Bewaar als .rekenraak-bestand op je toestel')}
+                    visibleLabel={iconOnly ? undefined : fileFlash ?? 'Bewaar bestand'}
+                    onClick={() => void handleSaveFile()}
                     variant="secondary"
                 />
 

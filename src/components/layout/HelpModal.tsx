@@ -85,16 +85,16 @@ export default function HelpModal({ onClose, onStartTour, onShowVideo }: Props) 
                 {tab === 'opslaan' && (
                     <>
                         <Section title="1. Automatisch bewaard">
-                            Je werk wordt voortdurend in je browser bewaard — bovenaan zie je de chip <strong>Automatisch bewaard</strong>. Sluit je per ongeluk het tabblad, dan staat alles er nog wanneer je terugkomt.
+                            Je werk krijgt automatisch een herstelkopie in deze browser. Dat is geen bestand op je toestel en werkt geen geopend bestand bij. Bovenaan zie je <strong>Herstelkopie in browser</strong>.
                         </Section>
                         <Section title="2. Mijn bladen">
-                            Met <strong>Bewaar</strong> bovenaan sla je het huidige blad rechtstreeks op in Mijn bladen. Open je een bewaard blad, dan werkt Bewaar datzelfde blad bij. Via <strong>Meer → Mijn bladen</strong> kan je bladen openen, hernoemen, dupliceren en verwijderen. Je kan tot 50 bladen bewaren.
+                            <strong>Meer → Bewaar in Mijn bladen</strong> bewaart het huidige blad in deze browser, niet als bestand. Via <strong>Meer → Mijn bladen</strong> kan je bestaande browserbladen openen, hernoemen, dupliceren en als bestand exporteren. Je kan tot 50 bladen in deze browser bewaren.
                         </Section>
                         <Section title="3. Kant-en-klare bladen">
                             Via <strong>Meer → Kant-en-klare bladen</strong> kies je een kant-en-klaar voorbeeldblad. Filter op leerjaar, rekenmethode of domein. <strong>Gebruik sjabloon</strong> laadt het blad in de editor — daarna pas je het vrij aan en bewaar je het bij Mijn bladen.
                         </Section>
                         <Section title="4. Bestand bewaren en openen">
-                            <strong>Meer → Exporteren…</strong> bewaart het blad als <strong>.rekenraak</strong>-bestand op je computer (een back-up of om door te sturen). <strong>Importeren…</strong> opent zo’n bestand opnieuw (ook oudere .json-bestanden werken nog).
+                            <strong>Meer → Open bestand…</strong> opent een <strong>.rekenraak</strong>-bestand (ook oudere .json-bestanden werken). <strong>Bewaar bestand</strong> schrijft wijzigingen terug naar dat bestand als je browser dat ondersteunt; anders wordt een nieuw bestand gedownload. <strong>Meer → Bewaar als bestand…</strong> kiest een andere naam of plek. Kies zelf waar het bestand terechtkomt; de herstelkopie blijft apart in de browser.
                         </Section>
                     </>
                 )}
@@ -106,7 +106,7 @@ export default function HelpModal({ onClose, onStartTour, onShowVideo }: Props) 
                             Via <strong>Meer → Delen</strong> heb je twee opties. <strong>Blad delen</strong> maakt een link met de volledige werkbundel (oefeningen én de gegenereerde getallen). <strong>Sjabloon delen</strong> deelt enkel de instellingen, zonder getallen — wie de link opent, genereert zelf verse oefeningen met dezelfde opbouw.
                         </Section>
                         <Section title="2. Een bestand delen">
-                            Liever offline? <strong>Meer → Exporteren…</strong> geeft je een .rekenraak-bestand dat je via mail of een gedeelde map doorstuurt. De ontvanger opent het met <strong>Importeren…</strong>.
+                            Liever offline? <strong>Bewaar bestand</strong> geeft je een .rekenraak-bestand dat je via mail of een gedeelde map doorstuurt. De ontvanger opent het met <strong>Meer → Open bestand…</strong>.
                         </Section>
                         <Section title="3. Een curriculum delen (leerkrachten)">
                             Via <strong>Meer → Curriculum samenstellen</strong> kies je welke oefentypes toegestaan zijn en zet je per type de moeilijkheid vast. Klik op <strong>Deel curriculum-link</strong>: wie die link opent, kan enkel oefeningen uit jouw lijst toevoegen, het aantal aanpassen en opnieuw genereren — de moeilijkheidsgraad ligt vast. Ideaal om een lijst per handboek of klas te delen.

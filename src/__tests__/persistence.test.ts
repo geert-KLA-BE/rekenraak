@@ -1,8 +1,10 @@
-import { describe, test, expect, beforeAll } from 'vitest';
+import { describe, test, expect, beforeAll, afterEach, vi } from 'vitest';
 import {
     WORKSHEET_FORMAT_VERSION,
     parseWorksheetFile,
     migrateWorksheetFile,
+    openWorksheetFromPicker,
+    saveWorksheetToFile,
     encodeShareLink,
     decodeShareHash,
     type SerialisableState,
@@ -42,6 +44,53 @@ function fileFromShare(link: string | null) {
     const hash = link!.slice(link!.indexOf('#'));
     return decodeShareHash(hash);
 }
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('filesystem worksheets', () => {
+    test('saves to a chosen file, then overwrites the same file without reopening the picker', async () => {
+        const worksheet = state();
+        const written: string[] = [];
+        const write = vi.fn(async (content: string) => { written.push(content); });
+        const close = vi.fn(async () => {});
+        const handle = { name: 'rekenblad.rekenraak', createWritable: vi.fn(async () => ({ write, close })) };
+        const picker = vi.fn(async () => handle);
+        vi.stubGlobal('window', { showSaveFilePicker: picker });
+
+        const first = await saveWorksheetToFile(worksheet);
+        expect(first).toEqual({ handle, downloaded: false });
+        expect(picker).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(written[0]).blocks).toEqual(JSON.parse(JSON.stringify(worksheet.blocks)));
+        expect(close).toHaveBeenCalledTimes(1);
+
+        await saveWorksheetToFile({ ...worksheet, header: { ...worksheet.header, titel: 'Bijgewerkt' } }, first.handle);
+        expect(picker).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(written[1]).header.titel).toBe('Bijgewerkt');
+    });
+
+    test('opens a validated file and keeps its handle for later saves', async () => {
+        const s = state();
+        const handle = { name: 'rekenblad.rekenraak', getFile: async () => ({ text: async () => JSON.stringify({ ...s, version: WORKSHEET_FORMAT_VERSION }) }) };
+        vi.stubGlobal('window', { showOpenFilePicker: async () => [handle] });
+        const opened = await openWorksheetFromPicker();
+        expect(opened?.handle).toBe(handle);
+        expect(opened?.file.blocks).toEqual(s.blocks);
+    });
+
+    test('rejects an invalid file before associating its handle', async () => {
+        vi.stubGlobal('window', { showOpenFilePicker: async () => [{ getFile: async () => ({ text: async () => 'not JSON' }) }] });
+        await expect(openWorksheetFromPicker()).rejects.toThrow('Bestand is geen geldige JSON.');
+    });
+
+    test('downloads even an empty worksheet when direct file saving is unavailable', async () => {
+        const click = vi.fn();
+        vi.stubGlobal('window', {});
+        vi.stubGlobal('document', { createElement: () => ({ click, style: {} }), body: { appendChild: vi.fn(), removeChild: vi.fn() } });
+        vi.stubGlobal('URL', { createObjectURL: () => 'blob:worksheet', revokeObjectURL: vi.fn() });
+        expect(await saveWorksheetToFile({ ...state(), blocks: [] })).toEqual({ handle: null, downloaded: true });
+        expect(click).toHaveBeenCalledOnce();
+    });
+});
 
 describe('worksheet file', () => {
     test('serialise → parse round-trip keeps blocks, header, footer and settings', () => {
