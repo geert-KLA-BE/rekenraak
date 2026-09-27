@@ -479,7 +479,7 @@ export default function App() {
     return { behind: toNodes('back'), front: toNodes('front') };
   };
 
-  const renderHeaderRegion = () => (
+  const renderHeaderRegion = (continuation = false) => (
     <>
           {/* ── HEADER ── (enum base style + optional style-builder overlay; custom wins) */}
           <div style={overlayRegionStyle({
@@ -510,13 +510,13 @@ export default function App() {
             borderBottomColor: (docSettings.headerStyle === 'kader' || docSettings.headerStyle === 'onderstreept') ? '#000' : 'transparent',
           }, docSettings.headerCustom)}>
             {(() => {
-              const showScore = docSettings.showScores && totalScore > 0;
-              const hasTitle = !!headerData?.titel;
+              const showScore = !continuation && docSettings.showScores && totalScore > 0;
+              const hasTitle = !!headerData?.titel && (!continuation || !!headerData.repeatTitle);
+              const showFields = !continuation || !!headerData?.repeatHeader;
               const gap = docSettings.titleFieldsGap ?? 16;
-              // Wrapped so print CSS can hide this page-1 copy when repeatHeader moves the strip to .print-thead.
               // Fields align opposite the title: title-left → fields flush right, title-right → fields left.
               const fieldsRowAligned = (align: 'left' | 'right') => {
-                const f = renderFields(align);
+                const f = showFields ? renderFields(align) : null;
                 return f ? <div className="print-body-fields">{f}</div> : null;
               };
               const titleScore = (align: 'left' | 'right') => (hasTitle || showScore) ? (
@@ -538,7 +538,7 @@ export default function App() {
                 // Fields hug the sheet's right edge as a block with a straight LEFT edge
                 // (left-aligned rows inside a right-pushed fit-content wrapper) — plain
                 // renderFields('right') right-justified each wrapped row raggedly.
-                const fr = renderFields('left');
+                const fr = showFields ? renderFields('left') : null;
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: `${gap}px`, rowGap: '8px' }}>
                     {titleScore('left')}
@@ -859,7 +859,7 @@ export default function App() {
               onSplitBlock={(blockId, anchor) => openSplit(blockId, anchor)}
               header={pi === 0
                 ? renderHeaderRegion()
-                : (headerData?.repeatHeader ? <div className="print-repeat-fields">{renderFields()}</div> : null)}
+                : (headerData?.repeatHeader || (headerData?.repeatTitle && headerData.titel) ? renderHeaderRegion(true) : null)}
               footer={renderFooterRegion(pi, packedPages.length)}
             >
               {blocks.length === 0 && pi === 0 && (

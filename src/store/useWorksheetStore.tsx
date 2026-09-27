@@ -28,7 +28,8 @@ export interface HeaderData {
     titel: string;
     fieldOrder?: HeaderField[];
     fieldWidths?: Record<HeaderField, number>;
-    repeatHeader?: boolean;   // print only: repeat the name fields strip at the top of every page
+    repeatHeader?: boolean;   // repeat the name fields on continuation pages
+    repeatTitle?: boolean;
 }
 
 export const DEFAULT_FIELD_ORDER: HeaderField[] = ['naam', 'klas', 'nummer', 'datum'];

@@ -5,6 +5,8 @@ Most recent entry first.
 
 ---
 
+**2026-09-27** — De documenttitel kan nu onafhankelijk van de naamvelden op elke bladzijde herhaald worden, met dezelfde koptekstopmaak als op de eerste pagina. De bladweergave en printmedia voor meerdere pagina's gecontroleerd; build geslaagd.
+
 **2026-09-23** — GitHub Pages-deploy zonder eigen domein toegevoegd voor `/rekenraak/`: aparte Vite-base, werkende statische links en media, Pages-URL's in metadata/sitemap en een Actions-workflow op `main`. Pages-build, normale build, browserpreview en `npm run check` (1275 tests) gecontroleerd.
 
 **2026-09-23** — De voettekst kan "Gemaakt met RekenRaak.be" nu verbergen via "Niet tonen"; alle drie de voettekstposities zijn dan beschikbaar. Oudere werkbladen blijven het merk links tonen. Delen via link getest; `npm run check` groen (1275 tests) en de bladweergave in de browser gecontroleerd.
