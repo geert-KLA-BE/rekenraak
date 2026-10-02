@@ -15,7 +15,6 @@ interface Props {
 // Printed digit/mono sizes below are factors of --sheet-size-math (empty-state chrome
 // stays fixed px).
 const mono = 'var(--font-sheet-math)';
-const SALMON = '#f4cbb8';
 
 // Digits of `n` from its highest non-zero place down to the smallest place (E, or 10^-dp).
 function placesOf(n: number, maxGetal: number, decimalPlaces: number) {
@@ -79,7 +78,7 @@ export default function PlaatswaardeViewer({ block, showSolutions }: Props) {
         };
         // Two-up when a row is narrow enough (default maxGetal 1000 = 4 places ≈ 266px),
         // so small place-value tables don't waste the right half of the page.
-        const placeCount = placesOf(maxGetal, maxGetal, decimalPlaces).length;
+        const placeCount = c.tablePlaces?.length ?? placesOf(maxGetal, maxGetal, decimalPlaces).length;
         const rowW = 90 + 16 + placeCount * 40;
         const tabCols = !tight && rowW * 2 + 24 <= availableWidth ? 2 : 1;
         return (
@@ -88,13 +87,18 @@ export default function PlaatswaardeViewer({ block, showSolutions }: Props) {
                 columnGap={24}
                 rowGap={gap + 4}
                 items={exercises.map(ex => {
-                    const places = placesOf(ex.number, maxGetal, decimalPlaces);
+                    const ownDecimals = (String(ex.number).split('.')[1] ?? '').length;
+                    const selected = c.tablePlaces;
+                    const places = selected
+                        ? getMaskPlaces(1_000_000_000, Math.max(decimalPlaces, ownDecimals) > 0 ? 'decimal' : 'natural', Math.max(decimalPlaces, ownDecimals))
+                            .filter(p => selected.includes(p.key)).map(p => ({ ...p, digit: digitAtPlace(ex.number, p.weight) }))
+                        : placesFor(ex);
                     return (
                         <div key={ex.id} className="print-exercise" style={{ display: 'flex', alignItems: 'center', gap: tight ? '6px' : '16px' }}>
                             <span style={{ fontFamily: mono, fontSize: tight ? 'calc(var(--sheet-size-math) * 0.87)' : 'calc(var(--sheet-size-math) * 1.04)', minWidth: tight ? undefined : '90px', whiteSpace: 'nowrap' }}>{formatMathNumber(ex.number)}</span>
                             <div>
                                 <div style={{ display: 'flex' }}>
-                                    {places.map(p => <div key={p.key} style={{ ...cell, backgroundColor: SALMON, fontWeight: 'bold', fontSize: 'calc(var(--sheet-size-math) * 0.75)' }}>{p.key}</div>)}
+                                    {places.map(p => <div key={p.key} style={{ ...cell, fontWeight: 'bold', fontSize: 'calc(var(--sheet-size-math) * 0.75)' }}>{p.key}</div>)}
                                 </div>
                                 <div style={{ display: 'flex' }}>
                                     {places.map(p => <div key={p.key} style={{ ...cell, ...solutionText }}>{showSolutions ? p.digit : ''}</div>)}

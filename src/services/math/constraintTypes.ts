@@ -350,6 +350,7 @@ export type PlaatswaardeConstraints = {
     maxGetal: number;
     numberMask: PlaceMask;
     decimalPlaces: number;
+    tablePlaces?: string[];
 };
 
 export type EvenOnevenConstraints = {

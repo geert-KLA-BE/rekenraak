@@ -12,7 +12,7 @@ function buildNumber(maxGetal: number, numberMask: Record<string, boolean>, deci
     const numberType = decimalPlaces > 0 ? 'decimal' : 'natural';
     const active = getMaskPlaces(maxGetal, numberType, decimalPlaces).filter(p => numberMask[p.key]);
     const scale = Math.pow(10, decimalPlaces);
-    const freeNumber = () => Number((randInt(1, maxGetal * scale - 1) / scale).toFixed(decimalPlaces));
+    const freeNumber = () => Number((randInt(1, maxGetal * scale) / scale).toFixed(decimalPlaces));
     if (!active.length) return freeNumber();
     // A masked place can carry digit 1-9, so a top place at/near maxGetal can overshoot
     // (mask {D} at maxGetal 1000 → 1000-9000). Retry until in range; only an impossible

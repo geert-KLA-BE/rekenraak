@@ -7,7 +7,9 @@ import { BlockWidthProvider, FULL_BLOCK_WIDTH_PX } from '../components/viewer/Bl
 import { makeBlock } from './helpers/makeBlock';
 import { MabPlaceColumn, type MabPlace } from '../components/viewer/MabBlocksSVG';
 import { generateMabExercises } from '../services/mab/mabGenerator';
+import { generatePlaatswaardeExercises } from '../services/plaatswaarde/plaatswaardeGenerator';
 import { MabAppearanceConfig } from '../components/configurator/plugins/MabConfig';
+import PlaatswaardeConfig from '../components/configurator/plugins/PlaatswaardeConfig';
 import { useWorksheetStore } from '../store/useWorksheetStore';
 
 // Every viewer, with real generated data, at the three cell widths a block can occupy,
@@ -35,6 +37,50 @@ afterEach(() => {
 
 test('every registry type has a UI row, and vice versa', () => {
     expect(Object.keys(EXERCISE_UI).sort()).toEqual(Object.keys(REGISTRY).sort());
+});
+
+test('plaatswaarde table shows selected places above max 10 without colored headers', () => {
+    const block = makeBlock('plaatswaarde', { constraints: { subType: 'tabel', maxGetal: 10, decimalPlaces: 0, tablePlaces: ['H', 'T', 'E'] } });
+    block.plaatswaardeExercises = [{ id: 'eight', number: 8, placeKey: 'E', isManuallyEdited: false }];
+    const Viewer = EXERCISE_UI.plaatswaarde.Viewer;
+    const { container } = render(<BlockWidthProvider value={FULL_BLOCK_WIDTH_PX}><Viewer block={block} showSolutions /></BlockWidthProvider>);
+    const rows = container.querySelectorAll('.print-exercise > div > div');
+    expect(Array.from(rows[0].children).map(cell => cell.textContent)).toEqual(['H', 'T', 'E']);
+    expect(Array.from(rows[0].children).every(cell => !(cell as HTMLElement).style.backgroundColor)).toBe(true);
+    expect(Array.from(rows[1].children).map(cell => cell.textContent)).toEqual(['0', '0', '8']);
+});
+
+test('plaatswaarde table columns stay selectable independently of maximum number', () => {
+    const store = useWorksheetStore.getState();
+    store.clearBlocks();
+    store.addBlockFromType('plaatswaarde', 'Plaatswaarde');
+    const block = useWorksheetStore.getState().blocks[0];
+    store.updateBlockSettings(block.id, { constraints: { ...block.constraints, subType: 'tabel', maxGetal: 10, decimalPlaces: 0 } });
+    const config = render(<PlaatswaardeConfig block={useWorksheetStore.getState().blocks[0]} />);
+    fireEvent.click(config.getByRole('button', { name: 'H' }));
+    expect(useWorksheetStore.getState().blocks[0].constraints.tablePlaces).toEqual(['T', 'E', 'H']);
+    config.rerender(<PlaatswaardeConfig block={useWorksheetStore.getState().blocks[0]} />);
+    fireEvent.click(config.getByRole('button', { name: 'Maximum getal' }));
+    expect(config.getByRole('option', { name: 'Tot 10' })).toBeTruthy();
+    fireEvent.click(config.getByRole('option', { name: 'Tot 20' }));
+    const updated = useWorksheetStore.getState().blocks[0];
+    expect(updated.constraints.maxGetal).toBe(20);
+    expect(updated.constraints.tablePlaces).toEqual(['T', 'E', 'H']);
+    config.rerender(<PlaatswaardeConfig block={updated} />);
+    fireEvent.click(config.getByRole('button', { name: 'T', pressed: true }));
+    expect(useWorksheetStore.getState().blocks[0].constraints.tablePlaces).toEqual(['E', 'H']);
+    store.clearBlocks();
+});
+
+test.each([10, 20])('plaatswaarde maximum %i is inclusive', (maxGetal) => {
+    const block = makeBlock('plaatswaarde', { constraints: { maxGetal, decimalPlaces: 0 }, block: { numberOfExercises: 1 } });
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.999999);
+    try {
+        const exercises = generatePlaatswaardeExercises(block);
+        expect(exercises[0].number).toBe(maxGetal);
+    } finally {
+        random.mockRestore();
+    }
 });
 
 describe.each(['thousands', 'hundreds', 'tens', 'units'] as MabPlace[])('%s square patterns', (place) => {
