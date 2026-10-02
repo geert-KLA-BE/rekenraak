@@ -66,6 +66,42 @@ test('recognition patterns separate groups of four without changing drawing-mode
     expect(Array.from(container.firstElementChild!.children).every(cell => !(cell as HTMLElement).style.marginLeft)).toBe(true);
 });
 
+test('color MAB assigns red to D and blue to H', () => {
+    for (const [place, fill] of [['thousands', '#ef4444'], ['hundreds', '#3b82f6']] as const) {
+        const { container } = render(<MabPlaceColumn count={1} place={place} style="mab-color" squarePattern />);
+        expect(container.querySelector('svg rect[fill]:not([fill="none"])')?.getAttribute('fill')).toBe(fill);
+    }
+});
+
+test('color MAB H plates are larger than upright T rods', () => {
+    const { container: hundreds } = render(<MabPlaceColumn count={4} place="hundreds" style="mab-color" squarePattern />);
+    const { container: tens } = render(<MabPlaceColumn count={4} place="tens" style="mab-color" squarePattern />);
+    const plate = hundreds.querySelector('svg')!;
+    const rod = tens.querySelector('svg')!;
+    expect(Number.parseFloat(plate.getAttribute('width')!)).toBeGreaterThan(Number.parseFloat(rod.getAttribute('width')!));
+    expect(Number.parseFloat(plate.getAttribute('height')!)).toBeGreaterThan(Number.parseFloat(rod.getAttribute('height')!));
+});
+
+test.each(['mab-bw', 'mab-color'] as const)('%s D front is the same size as H', (style) => {
+    const { container: hundreds } = render(<MabPlaceColumn count={1} place="hundreds" style={style} squarePattern />);
+    const h = hundreds.querySelector('svg')!;
+    const hFace = h.querySelector('rect')!;
+    const hWidth = Number(hFace.getAttribute('width')) * Number.parseFloat(h.getAttribute('width')!) / h.viewBox.baseVal.width;
+    for (const squarePattern of [false, true]) {
+        const { container: thousands } = render(<MabPlaceColumn count={1} place="thousands" style={style} squarePattern={squarePattern} />);
+        const d = thousands.querySelector('svg')!;
+        const dFace = d.querySelector('rect[fill]:not([fill="none"])')!;
+        const dWidth = Number(dFace.getAttribute('width')) * Number.parseFloat(d.getAttribute('width')!) / d.viewBox.baseVal.width;
+        expect(dWidth).toBeCloseTo(hWidth);
+    }
+});
+
+test('color MAB E squares have visible separation in the two-row pattern', () => {
+    const { container } = render(<MabPlaceColumn count={2} place="units" style="mab-color" squarePattern />);
+    const grid = container.firstElementChild as HTMLElement;
+    expect(Number.parseFloat(grid.style.rowGap)).toBeGreaterThanOrEqual(5 / 17.33);
+});
+
 test.each(['symbolic', 'mab-bw'] as const)('%s hundreds outline stays inside its SVG viewport', (style) => {
     const { container } = render(<MabPlaceColumn count={1} place="hundreds" style={style} squarePattern />);
     const svg = container.querySelector('svg')!;
@@ -78,7 +114,7 @@ test.each(['symbolic', 'mab-bw'] as const)('%s hundreds outline stays inside its
 });
 
 test.each(['symbolic', 'mab-bw', 'mab-color'] as const)('%s thousands outlines stay inside their SVG viewport', (style) => {
-    const { container } = render(<MabPlaceColumn count={9} place="thousands" style={style} squarePattern compactThousands />);
+    const { container } = render(<MabPlaceColumn count={9} place="thousands" style={style} squarePattern />);
     for (const svg of container.querySelectorAll('svg')) {
         const box = svg.viewBox.baseVal;
         for (const rect of svg.querySelectorAll('rect')) {
@@ -140,9 +176,27 @@ test.each(['mab-herkennen', 'mab-tekenen'] as const)('%s fits nine D cubes in tw
             </BlockWidthProvider>,
         );
         const dCell = Array.from(container.querySelectorAll('.print-exercise svg'))
-            .filter(svg => svg.getAttribute('viewBox') === '-1 -1 26 26');
+            .filter(svg => svg.getAttribute('viewBox') === '-1 -1 36 36');
         expect(dCell).toHaveLength(9);
         expect(dCell[0].parentElement?.parentElement?.getAttribute('style')).toContain('grid-template-rows: repeat(2, auto)');
+        const table = container.querySelector('.print-exercise div[style*="grid-template-columns"]') as HTMLElement;
+        const columnWidth = Number(table.style.gridTemplateColumns.match(/repeat\(4, ([\d.]+)em\)/)?.[1]);
+        expect(columnWidth).toBeGreaterThanOrEqual((5 * 36 + 4 * 2 + 2 * 3 + 4) / 17.33);
+        const drawingArea = container.querySelector('.print-exercise > div')?.lastElementChild as HTMLElement;
+        expect(Number.parseFloat(drawingArea.style.height) * 17.33).toBeGreaterThanOrEqual(typeId === 'mab-tekenen' ? 86 : 78);
+    }
+});
+
+test('four-digit recognition columns fit nine large H plates', () => {
+    const block = makeBlock('mab-herkennen', { constraints: { maxNumber: 9999, mabStyle: 'mab-color' } });
+    block.mabExercises = [{ id: 'nine', value: 9999, thousands: 9, hundreds: 9, tens: 9, units: 9, isManuallyEdited: false }];
+    const Viewer = EXERCISE_UI['mab-herkennen'].Viewer;
+    for (const width of [FULL_BLOCK_WIDTH_PX, 315]) {
+        const { container } = render(<BlockWidthProvider value={width}><Viewer block={block} showSolutions={false} /></BlockWidthProvider>);
+        const table = container.querySelector('.print-exercise div[style*="grid-template-columns"]') as HTMLElement;
+        const columnWidth = Number(table.style.gridTemplateColumns.match(/repeat\(4, ([\d.]+)em\)/)?.[1]);
+        expect(columnWidth).toBeGreaterThanOrEqual((5 * 32 + 4 * 2 + 2 * 3 + 4) / 17.33);
+        expect(Array.from(container.querySelectorAll('svg')).filter(svg => svg.getAttribute('viewBox') === '0 0 32 32')).toHaveLength(9);
     }
 });
 
