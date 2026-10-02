@@ -177,7 +177,7 @@ const geldTeruggevenSpace: OptionSpace = {
 // MAB = Dienes place-value blocks.
 const mabSpace: OptionSpace = {
     mabStyle: ['symbolic', 'mab-bw', 'mab-color'],
-    maxNumber: [10, 20, 100, 1000],
+    maxNumber: [10, 20, 100, 1000, 9999],
     scaffolding: ['positietabel', 'kader', 'geen'],
     operand1Mask: MASKS,
 };

@@ -1,9 +1,9 @@
 import type { MabStyle } from '../../services/math/types';
 
 // Renders place-value blocks for one MAB exercise. Three visual conventions:
-//   symbolic:   units = dot, tens = horizontal bar, hundreds = small outlined square,
+//   symbolic:   units = dot, tens = bar, hundreds = small outlined square,
 //               thousands = stacked-square stamp. Compact textbook abbreviation.
-//   mab-bw:     Dienes blocks — units = 1×1 cube, tens = 1×10 rod (horizontal),
+//   mab-bw:     Dienes blocks — units = 1×1 cube, tens = 1×10 rod,
 //               hundreds = 10×10 flat, thousands = 10×10×10 cube.
 //   mab-color:  Same as mab-bw but coloured per place value (yellow/green/red/blue).
 
@@ -23,6 +23,8 @@ interface ColumnProps {
     place: MabPlace;
     style: MabStyle;
     color?: string;
+    squarePattern?: boolean;
+    compactThousands?: boolean;
 }
 
 // 'mab-color' palette per place (fill). Strokes stay black for readability.
@@ -41,51 +43,30 @@ function resolveFill(style: MabStyle, place: MabPlace, color: string): string {
     return 'white';
 }
 
-export function MabPlaceColumn({ count, place, style, color = '#000' }: ColumnProps) {
+export function MabPlaceColumn({ count, place, style, color = '#000', squarePattern = false, compactThousands = false }: ColumnProps) {
     if (count === 0) return null;
-
-    // Units: column-first 2-row "domino" pattern (1, 2, 3, 4…) for subitizing.
-    if (place === 'units') {
-        return <PatternedGrid count={count} maxRows={2} place="units" style={style} color={color} />;
+    if (squarePattern || place === 'units' || place === 'hundreds') {
+        return <PatternedGrid count={count} maxRows={squarePattern || place === 'units' ? 2 : 3} place={place} style={style} color={color} squarePattern={squarePattern} compactThousands={compactThousands} />;
     }
-
-    // Hundreds: 3-column × 3-row grid (column-first top-down) — up to 9 fit in the cell.
-    if (place === 'hundreds') {
-        return <PatternedGrid count={count} maxRows={3} place="hundreds" style={style} color={color} />;
-    }
-
-    // Tens / thousands: one glyph per row stacked bottom-up so column width stays fixed.
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column-reverse',
-            flexWrap: 'nowrap',
-            justifyContent: 'flex-start',
-            alignItems: 'center',
-            gap: em(2),
-            width: '100%',
-            height: '100%',
-        }}>
-            {Array.from({ length: count }, (_, i) => (
-                <Glyph key={i} place={place} style={style} color={color} />
-            ))}
+        <div style={{ display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: em(2), width: '100%', height: '100%' }}>
+            {Array.from({ length: count }, (_, index) => <Glyph key={index} place={place} style={style} color={color} squarePattern={false} compactThousands={false} />)}
         </div>
     );
 }
 
-function PatternedGrid({ count, maxRows, place, style, color }: {
-    count: number; maxRows: number; place: MabPlace; style: MabStyle; color: string;
+function PatternedGrid({ count, maxRows, place, style, color, squarePattern, compactThousands }: {
+    count: number; maxRows: number; place: MabPlace; style: MabStyle; color: string; squarePattern: boolean; compactThousands: boolean;
 }) {
     const cols = Math.ceil(count / maxRows);
     const cells: React.ReactNode[] = [];
-    // Fill column by column, top-down within each column.
     for (let k = 0; k < cols; k++) {
         for (let r = 0; r < maxRows; r++) {
             const idx = k * maxRows + r;
             if (idx >= count) break;
             cells.push(
-                <div key={`${k}-${r}`} style={{ gridColumn: k + 1, gridRow: r + 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Glyph place={place} style={style} color={color} />
+                <div key={`${k}-${r}`} style={{ gridColumn: k + 1, gridRow: r + 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: squarePattern && k > 0 && k % 2 === 0 ? em(3) : undefined }}>
+                    <Glyph place={place} style={style} color={color} squarePattern={squarePattern} compactThousands={compactThousands} />
                 </div>
             );
         }
@@ -95,7 +76,7 @@ function PatternedGrid({ count, maxRows, place, style, color }: {
             display: 'grid',
             gridTemplateColumns: `repeat(${cols}, auto)`,
             gridTemplateRows: `repeat(${maxRows}, auto)`,
-            columnGap: em(3),
+            columnGap: em(squarePattern ? 2 : 3),
             rowGap: em(2),
             justifyContent: 'center',
             alignContent: 'end',
@@ -106,17 +87,17 @@ function PatternedGrid({ count, maxRows, place, style, color }: {
     );
 }
 
-function Glyph({ place, style, color }: { place: MabPlace; style: MabStyle; color: string }) {
+function Glyph({ place, style, color, squarePattern, compactThousands }: { place: MabPlace; style: MabStyle; color: string; squarePattern: boolean; compactThousands: boolean }) {
     if (style === 'symbolic') {
         if (place === 'thousands') return <SymbolicThousands color={color} />;
         if (place === 'hundreds')  return <SymbolicHundreds color={color} />;
-        if (place === 'tens')      return <SymbolicTens color={color} />;
+        if (place === 'tens')      return <SymbolicTens color={color} vertical={squarePattern} />;
         return <SymbolicUnits color={color} />;
     }
     const fill = resolveFill(style, place, color);
-    if (place === 'thousands') return <RealisticThousands stroke={color} fill={fill} />;
-    if (place === 'hundreds')  return <RealisticHundreds stroke={color} fill={fill} />;
-    if (place === 'tens')      return <RealisticTens stroke={color} fill={fill} />;
+    if (place === 'thousands') return <RealisticThousands stroke={color} fill={fill} squarePattern={squarePattern} compact={compactThousands} />;
+    if (place === 'hundreds')  return <RealisticHundreds stroke={color} fill={fill} squarePattern={squarePattern} />;
+    if (place === 'tens')      return <RealisticTens stroke={color} fill={fill} vertical={squarePattern} />;
     return <RealisticUnits stroke={color} fill={fill} />;
 }
 
@@ -126,14 +107,13 @@ function SymbolicUnits({ color }: { color: string }) {
     const r = 2.5;
     return (
         <svg width={em(r * 2)} height={em(r * 2)} viewBox={`0 0 ${r * 2} ${r * 2}`}>
-            <circle cx={r} cy={r} r={r} fill={color} />
+            <circle cx={r} cy={r} r={r - 0.5} fill={color} />
         </svg>
     );
 }
 
-// Horizontal bar — stacked vertically inside the T column by MabPlaceColumn.
-function SymbolicTens({ color }: { color: string }) {
-    const W = 22, H = 3;
+function SymbolicTens({ color, vertical }: { color: string; vertical: boolean }) {
+    const W = vertical ? 3 : 22, H = vertical ? 22 : 3;
     return (
         <svg width={em(W)} height={em(H)} viewBox={`0 0 ${W} ${H}`}>
             <rect width={W} height={H} fill={color} />
@@ -145,7 +125,7 @@ function SymbolicHundreds({ color }: { color: string }) {
     const SQ = 10;
     return (
         <svg width={em(SQ)} height={em(SQ)} viewBox={`0 0 ${SQ} ${SQ}`}>
-            <rect width={SQ} height={SQ} stroke={color} strokeWidth={1} fill="none" />
+            <rect x={1} y={1} width={SQ - 2} height={SQ - 2} stroke={color} strokeWidth={1} fill="none" />
         </svg>
     );
 }
@@ -154,7 +134,7 @@ function SymbolicThousands({ color }: { color: string }) {
     const SQ = 10, GAP = 2;
     const total = SQ * 2 + GAP;
     return (
-        <svg width={em(total)} height={em(total)} viewBox={`0 0 ${total} ${total}`}>
+        <svg width={em(total)} height={em(total)} viewBox={`-1 -1 ${total + 2} ${total + 2}`}>
             <rect x={0} y={0} width={SQ} height={SQ} stroke={color} strokeWidth={1} fill="none" />
             <rect x={SQ + GAP} y={0} width={SQ} height={SQ} stroke={color} strokeWidth={1} fill="none" />
             <rect x={0} y={SQ + GAP} width={SQ} height={SQ} stroke={color} strokeWidth={1} fill="none" />
@@ -166,12 +146,8 @@ function SymbolicThousands({ color }: { color: string }) {
 // ── Realistic Dienes glyphs (used by both mab-bw and mab-color) ──────────────
 
 const CELL = 6;            // unit cube / tens-rod cell
-// Hundreds sit in a 3x3 grid, not 2x5: the column is as wide as a duizendtal cube, so the
-// height was the only thing holding them at 8px while horizontal room went unused. Three
-// rows inside the same ~48px budget gives 3 x 14 + 2 x 2 = 46, so the plate nearly doubles
-// and stops looking like the runt beside a 60px tens rod.
 const HUNDREDS_SQ = 14;
-const CELL_THOUSANDS = 7;  // thousands keeps the full 10×10 cube
+const CELL_THOUSANDS = 7;
 const STROKE = 0.5;
 
 function RealisticUnits({ stroke, fill }: { stroke: string; fill: string }) {
@@ -182,38 +158,40 @@ function RealisticUnits({ stroke, fill }: { stroke: string; fill: string }) {
     );
 }
 
-// Tens rendered as a horizontal bar (CELL*10 wide × CELL tall). Stacked vertically
-// by MabPlaceColumn so the T column always has a fixed width.
-function RealisticTens({ stroke, fill }: { stroke: string; fill: string }) {
-    const W = CELL * 10;
+function RealisticTens({ stroke, fill, vertical }: { stroke: string; fill: string; vertical: boolean }) {
+    const rodCell = vertical ? CELL / 2 : CELL;
+    const W = vertical ? CELL - 1 : rodCell * 10;
+    const H = vertical ? rodCell * 10 : rodCell;
+    const inset = vertical ? STROKE : 0;
     return (
-        <svg width={em(W)} height={em(CELL)} viewBox={`0 0 ${W} ${CELL}`}>
-            <rect width={W} height={CELL} fill={fill} stroke={stroke} strokeWidth={STROKE} />
+        <svg width={em(W)} height={em(H)} viewBox={`0 0 ${W} ${H}`}>
+            <rect x={inset} y={inset} width={W - 2 * inset} height={H - 2 * inset} fill={fill} stroke={stroke} strokeWidth={STROKE} />
             {Array.from({ length: 9 }).map((_, j) => (
-                <line key={j} x1={(j + 1) * CELL} y1={0} x2={(j + 1) * CELL} y2={CELL} stroke={stroke} strokeWidth={STROKE} />
+                <line key={j} x1={vertical ? inset : (j + 1) * rodCell} y1={vertical ? (j + 1) * rodCell : 0}
+                    x2={vertical ? W - inset : (j + 1) * rodCell} y2={vertical ? (j + 1) * rodCell : H} stroke={stroke} strokeWidth={STROKE} />
             ))}
         </svg>
     );
 }
 
-// One hundred = a single filled square (larger than the unit cube). Multiple
-// hundreds get tiled by MabPlaceColumn into a 2×5 grid so up to 9 fit.
-function RealisticHundreds({ stroke, fill }: { stroke: string; fill: string }) {
+function RealisticHundreds({ stroke, fill, squarePattern }: { stroke: string; fill: string; squarePattern: boolean }) {
+    const size = squarePattern ? 11 : HUNDREDS_SQ;
+    const inset = squarePattern ? 1 : 0;
     return (
-        <svg width={em(HUNDREDS_SQ)} height={em(HUNDREDS_SQ)} viewBox={`0 0 ${HUNDREDS_SQ} ${HUNDREDS_SQ}`}>
-            <rect width={HUNDREDS_SQ} height={HUNDREDS_SQ} fill={fill} stroke={stroke} strokeWidth={STROKE} />
+        <svg width={em(size)} height={em(size)} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={inset} y={inset} width={size - 2 * inset} height={size - 2 * inset} fill={fill} stroke={stroke} strokeWidth={STROKE} />
         </svg>
     );
 }
 
-function RealisticThousands({ stroke, fill }: { stroke: string; fill: string }) {
-    const C = CELL_THOUSANDS;
+function RealisticThousands({ stroke, fill, squarePattern, compact }: { stroke: string; fill: string; squarePattern: boolean; compact: boolean }) {
+    const C = compact ? 2 : squarePattern ? 6 : CELL_THOUSANDS;
     const S = C * 10;
     const OFFSET = 4;
     const total = S + OFFSET;
     // Front face = 10x10 grid + isometric back face.
     return (
-        <svg width={em(total)} height={em(total)} viewBox={`0 0 ${total} ${total}`}>
+        <svg width={em(total)} height={em(total)} viewBox={`-1 -1 ${total + 2} ${total + 2}`}>
             <rect x={OFFSET} y={0} width={S} height={S} fill="none" stroke={stroke} strokeWidth={STROKE} />
             <line x1={0} y1={OFFSET} x2={OFFSET} y2={0} stroke={stroke} strokeWidth={STROKE} />
             <line x1={S} y1={OFFSET} x2={S + OFFSET} y2={0} stroke={stroke} strokeWidth={STROKE} />

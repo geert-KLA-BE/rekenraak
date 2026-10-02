@@ -35,8 +35,8 @@ export function generateMabExercises(block: MathBlock): MabExercise[] {
         operand1Mask = {},
     } = block.constraints as MabConstraints;
 
-    // MAB is a place-value drawing (units/tens/hundreds/thousands) and tops out at 1000 by
-    // design, but the global base seed can push maxNumber to 1e10 — clamp before it is ever
+    // MAB has four place-value columns and tops out at 9999, but the global base seed can
+    // push maxNumber to 1e10 — clamp before it is ever
     // used as a range (it used to size an Array.from pool → RangeError at leerjaar 6).
     const maxNumber = Math.max(1, Math.min((block.constraints as MabConstraints).maxNumber ?? 100, 9999));
 

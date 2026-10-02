@@ -13,7 +13,7 @@ interface Props {
     block: MathBlock;
 }
 
-const MAX_PRESETS: Array<10 | 20 | 100 | 1000> = [10, 20, 100, 1000];
+const MAX_PRESETS: Array<10 | 20 | 100 | 1000 | 9999> = [10, 20, 100, 1000, 9999];
 const STYLE_OPTIONS: Array<{ val: 'symbolic' | 'mab-bw' | 'mab-color'; label: string }> = [
     { val: 'symbolic',  label: 'Symbolisch' },
     { val: 'mab-bw',    label: 'MAB (zwart/wit)' },
@@ -157,20 +157,28 @@ export function MabStyleConfig({ block }: Props) {
     );
 }
 
+export function MabAppearanceConfig({ block }: Props) {
+    const [c, patch] = useConstraints<MabConstraints>(block);
+    return (
+        <>
+            <label style={{ ...F.label, marginTop: '14px' }}>Oefeningen per rij</label>
+            <PopupSelect
+                value={c.exercisesPerRow ?? 3}
+                options={[1, 2, 3, 4].map(value => ({ value, label: `${value} ${value === 1 ? 'oefening' : 'oefeningen'}` }))}
+                onChange={value => patch({ exercisesPerRow: value })}
+                ariaLabel="Oefeningen per rij"
+            />
+        </>
+    );
+}
+
 // ── Geavanceerd: the printed geometry of one MAB exercise.
 export function MabAdvancedConfig({ block }: Props) {
     const [c, patch] = useConstraints<MabConstraints>(block);
-    const perRow       = c.exercisesPerRow ?? 3;
     const boxHeight    = c.boxHeight       ?? 70;
     const answerHeight = c.answerHeight    ?? 36;
     return (
         <>
-            <label style={F.label}>Oefeningen per rij ({perRow})</label>
-            <input
-                type="range" min={1} max={4} value={perRow}
-                onChange={e => patch({ exercisesPerRow: Number(e.target.value) })}
-                style={F.range}
-            />
             <label style={{ ...F.label, marginTop: '10px' }}>Tekenvak hoogte ({boxHeight}px)</label>
             <input
                 type="range" min={40} max={200} step={5} value={boxHeight}

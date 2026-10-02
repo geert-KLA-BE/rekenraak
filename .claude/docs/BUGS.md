@@ -9,6 +9,7 @@ in [UpdateState.md](UpdateState.md). Agents: append here, never fix silently.
 ## Layout / sheet
 
 - Switching an occupied multi-page worksheet into and out of print media can trigger repeated `useMeasuredHeights` body-first repacks and a measurement cooldown; reproduced with the previous 20mm margins and the new 12mm margins.
+- A half-width MAB herkennen block with six 999 exercises in `mab-bw` uses six rows and extends about 59px beyond the page body (seen with the original 1018px block height too); the packer does not split this dense block automatically.
 
 ## Docs
 
