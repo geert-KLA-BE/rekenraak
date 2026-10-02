@@ -60,6 +60,7 @@ describe('filesystem worksheets', () => {
         const first = await saveWorksheetToFile(worksheet);
         expect(first).toEqual({ handle, downloaded: false });
         expect(picker).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(written[0]).version).toBe(WORKSHEET_FORMAT_VERSION);
         expect(JSON.parse(written[0]).blocks).toEqual(JSON.parse(JSON.stringify(worksheet.blocks)));
         expect(close).toHaveBeenCalledTimes(1);
 
@@ -77,6 +78,29 @@ describe('filesystem worksheets', () => {
         expect(opened?.file.blocks).toEqual(s.blocks);
     });
 
+    test('reopens a saved worksheet from the same file handle', async () => {
+        const worksheet = state();
+        let fileContents = '';
+        const handle = {
+            name: 'rekenblad.rekenraak',
+            createWritable: async () => ({ write: async (content: string) => { fileContents = content; }, close: async () => {} }),
+            getFile: async () => ({ text: async () => fileContents }),
+        };
+        vi.stubGlobal('window', { showSaveFilePicker: async () => handle, showOpenFilePicker: async () => [handle] });
+
+        await saveWorksheetToFile(worksheet);
+        const opened = await openWorksheetFromPicker();
+        expect(opened?.handle).toBe(handle);
+        expect(opened?.file).toMatchObject({
+            version: WORKSHEET_FORMAT_VERSION,
+            blocks: JSON.parse(JSON.stringify(worksheet.blocks)),
+            header: worksheet.header,
+            footer: worksheet.footer,
+            docSettings: worksheet.docSettings,
+            baseSettings: worksheet.baseSettings,
+        });
+    });
+
     test('rejects an invalid file before associating its handle', async () => {
         vi.stubGlobal('window', { showOpenFilePicker: async () => [{ getFile: async () => ({ text: async () => 'not JSON' }) }] });
         await expect(openWorksheetFromPicker()).rejects.toThrow('Bestand is geen geldige JSON.');
@@ -84,11 +108,13 @@ describe('filesystem worksheets', () => {
 
     test('downloads even an empty worksheet when direct file saving is unavailable', async () => {
         const click = vi.fn();
+        let downloadBlob: Blob | undefined;
         vi.stubGlobal('window', {});
         vi.stubGlobal('document', { createElement: () => ({ click, style: {} }), body: { appendChild: vi.fn(), removeChild: vi.fn() } });
-        vi.stubGlobal('URL', { createObjectURL: () => 'blob:worksheet', revokeObjectURL: vi.fn() });
+        vi.stubGlobal('URL', { createObjectURL: (blob: Blob) => { downloadBlob = blob; return 'blob:worksheet'; }, revokeObjectURL: vi.fn() });
         expect(await saveWorksheetToFile({ ...state(), blocks: [] })).toEqual({ handle: null, downloaded: true });
         expect(click).toHaveBeenCalledOnce();
+        expect(parseWorksheetFile(await downloadBlob!.text())).toMatchObject({ version: WORKSHEET_FORMAT_VERSION, blocks: [] });
     });
 });
 
@@ -209,6 +235,8 @@ describe('worksheet file', () => {
     test.each([
         ['not json at all', 'geen geldige JSON'],
         [JSON.stringify({ blocks: [], header: {}, footer: {}, docSettings: {} }), 'Versie-veld'],
+        [JSON.stringify({ version: 0, blocks: [], header: {}, footer: {}, docSettings: {} }), 'Versie-veld'],
+        [JSON.stringify({ version: 2.5, blocks: [], header: {}, footer: {}, docSettings: {} }), 'Versie-veld'],
         [JSON.stringify({ version: 2, header: {}, footer: {}, docSettings: {} }), 'blocks-veld'],
         [JSON.stringify({ version: 2, blocks: [], footer: {}, docSettings: {} }), 'header-veld'],
         [JSON.stringify({ version: 2, blocks: [], header: {}, docSettings: {} }), 'footer-veld'],

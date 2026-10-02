@@ -227,7 +227,7 @@ export function parseWorksheetFile(json: string): WorksheetFile {
     }
     if (!parsed || typeof parsed !== 'object') throw new Error('Bestand heeft geen geldig formaat.');
     const obj = parsed as Record<string, unknown>;
-    if (typeof obj.version !== 'number') throw new Error('Versie-veld ontbreekt of is ongeldig.');
+    if (typeof obj.version !== 'number' || !Number.isSafeInteger(obj.version) || obj.version < 1) throw new Error('Versie-veld ontbreekt of is ongeldig.');
     if (obj.version > WORKSHEET_FORMAT_VERSION) {
         throw new Error(`Bestand komt uit een nieuwere versie (v${obj.version}). Werk de app bij om dit te openen.`);
     }
