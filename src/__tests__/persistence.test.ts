@@ -142,6 +142,22 @@ describe('worksheet file', () => {
         expect(parsed.selectedGrade).toBe(3);
     });
 
+    test('v3 plaatswaarde files remain readable and new column choices use v4', () => {
+        const s = state();
+        const block = makeBlock('plaatswaarde', { constraints: { subType: 'tabel', maxGetal: 10, tablePlaces: ['H', 'T', 'E'] } });
+        const file = (blocks: typeof s.blocks, version: number) => JSON.stringify({
+            version, blocks,
+            header: s.header, footer: s.footer, docSettings: s.docSettings,
+        });
+        const oldBlock = { ...block, constraints: { ...block.constraints, tablePlaces: undefined } };
+        expect(WORKSHEET_FORMAT_VERSION).toBe(4);
+        const old = parseWorksheetFile(file([oldBlock], 3));
+        expect(old.version).toBe(4);
+        expect(old.blocks[0].constraints.tablePlaces).toBeUndefined();
+        const parsed = parseWorksheetFile(file([block], WORKSHEET_FORMAT_VERSION));
+        expect(parsed.blocks[0].constraints.tablePlaces).toEqual(['H', 'T', 'E']);
+    });
+
     test('fontSizeMath / fontSizeText survive the round-trip', () => {
         const s = state();
         const docSettings = { ...s.docSettings, fontSizeMath: 14, fontSizeText: 16 } as DocSettings;
@@ -263,21 +279,22 @@ describe('v2 → v3 width migration', () => {
 
     test('6 → vol, 3 → ½, 2 → ½, absent stays absent', () => {
         const migrated = migrateWorksheetFile(v2File([6, 3, 2, undefined]));
-        expect(migrated.version).toBe(3);
+        expect(migrated.version).toBe(WORKSHEET_FORMAT_VERSION);
         expect(migrated.blocks.map(b => b.widthUnits)).toEqual([4, 2, 2, undefined]);
     });
 
     test('parseWorksheetFile migrates a v2 file on the way in', () => {
         const parsed = parseWorksheetFile(JSON.stringify(v2File([6, 3, 2])));
-        expect(parsed.version).toBe(3);
+        expect(parsed.version).toBe(WORKSHEET_FORMAT_VERSION);
         expect(parsed.blocks.map(b => b.widthUnits)).toEqual([4, 2, 2]);
     });
 
-    test('a v3 file is left alone (and migrating twice is a no-op)', () => {
+    test('a v3 file upgrades without changing widths (and migrating twice is a no-op)', () => {
         const v3 = { ...v2File([4, 2, 1]), version: 3 };
         const once = migrateWorksheetFile(v3);
-        expect(once).toBe(v3);
-        expect(migrateWorksheetFile(once).blocks.map(b => b.widthUnits)).toEqual([4, 2, 1]);
+        expect(once.version).toBe(4);
+        expect(once.blocks.map(b => b.widthUnits)).toEqual([4, 2, 1]);
+        expect(migrateWorksheetFile(once)).toBe(once);
     });
 
     test('a width the old grid never had widens instead of overflowing', () => {
