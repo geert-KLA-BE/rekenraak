@@ -2,35 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, Eye, EyeSlash as EyeOff } from '@phosphor-icons/react';
 import { useWorksheetStore } from '../../store/useWorksheetStore';
 import { buildCatalog, catalogDomains, type CatalogItem } from '../../config/exerciseCatalog';
-import { REGISTRY } from '../../config/exerciseRegistry';
 import { EXERCISE_UI } from '../../config/exerciseUI';
 import { resolveInstruction } from '../../config/instructionPresets';
 import { encodeShareLink } from '../../services/persistence';
 import type { BlockConstraints } from '../../services/math/constraintTypes';
-import type { MathBlock } from '../../services/math/types';
 import ExercisePreview from '../shared/ExercisePreview';
 import ModalShell from '../ui/ModalShell';
+import { makeDraftBlock } from './draftBlock';
 
 interface Props {
     onClose: () => void;
-}
-
-function makeDraftBlock(typeId: string, variantConstraints: Record<string, unknown>): MathBlock {
-    const def = REGISTRY[typeId];
-    const defaults = def.defaultConstraints(typeId);
-    return {
-        id: `draft-${typeId}`,
-        typeId,
-        instructionText: '',
-        instructionMode: 'geen',
-        layoutPreset: 'inline-short',
-        steppedLines: 3,
-        numberOfExercises: def.defaultCount,
-        totalPoints: 0,
-        verticalSpacing: 14,
-        constraints: { ...defaults, ...variantConstraints },
-        exercises: [],
-    };
 }
 
 // Authoring UI: pick which exercise types a curriculum allows, fine-tune each via
@@ -114,6 +95,8 @@ export default function CurriculumBuilderModal({ onClose }: Props) {
     const focusedItem = catalog.find(it => it.typeId === focused);
     const focusedDraft = focusedItem ? draftFor(focusedItem.typeId) : undefined;
     const Config = focusedItem ? EXERCISE_UI[focusedItem.typeId]?.Config : undefined;
+    // Layout rows moved out of Config (inspector design A); a curriculum still sets them, so they follow the content rows.
+    const StyleConfig = focusedItem ? EXERCISE_UI[focusedItem.typeId]?.StyleConfig : undefined;
 
     return (
         <ModalShell onClose={onClose} ariaLabel="Curriculum samenstellen" variant="dialog" maxWidth={1280}>
@@ -204,6 +187,7 @@ export default function CurriculumBuilderModal({ onClose }: Props) {
 
                                 <div style={S.configWrap}>
                                     {Config ? <Config block={focusedDraft} /> : <p style={S.muted}>Geen instellingen voor dit type.</p>}
+                                    {Config && StyleConfig && focusedDraft && <StyleConfig block={focusedDraft} />}
                                 </div>
                             </>
                         ) : (

@@ -5,16 +5,14 @@ import { PRINT_PALETTE, PRINT_FILLS } from '../../config/printPalette';
 import FontFamilyPicker from './FontFamilyPicker';
 import type { FontOption } from '../../config/fontOptions';
 
-// Reusable font-style block: family, size, text/fill color, bold/italic/underline.
-// Used by RegionStyleFields (header/titel/footer, each with exactly one family+size) and
-// standalone by regions with their own bespoke size/family mechanism (oefeningen, which
-// has separate cijfers/tekst pickers) by simply omitting the fontFamily/fontSize slots —
-// only the color/fill/bold/italic/underline rows render then.
+// One reusable font-style block: optional size and family slots, then text/fill colour and
+// bold/italic/underline. RegionStyleFields passes the size; a card with its own size
+// controls (the veldlabels, the oefeningen) omits it and gets only the shared rows.
 export interface FontFamilySlot {
     label: string;
-    value: string;
+    value: string | undefined;
     options: FontOption[];
-    onChange: (value: string) => void;
+    onChange: (value: string | undefined) => void;
 }
 
 export interface FontSizeSlot {
@@ -59,18 +57,9 @@ export default function FontStyleFields({
                 </Field>
             )}
 
-            <div style={rowStyle}>
-                <span style={textStyle}>Vet</span>
-                <Switch checked={!!bold} onChange={onBoldChange} aria-label="Vet" />
-            </div>
-            <div style={rowStyle}>
-                <span style={textStyle}>Cursief</span>
-                <Switch checked={!!italic} onChange={onItalicChange} aria-label="Cursief" />
-            </div>
-            <div style={rowStyle}>
-                <span style={textStyle}>Onderstreept</span>
-                <Switch checked={!!underline} onChange={onUnderlineChange} aria-label="Onderstreept" />
-            </div>
+            <SwitchRow label="Vet" checked={!!bold} onChange={onBoldChange} />
+            <SwitchRow label="Cursief" checked={!!italic} onChange={onItalicChange} />
+            <SwitchRow label="Onderstreept" checked={!!underline} onChange={onUnderlineChange} />
 
             <Field label="Tekstkleur">
                 <SwatchRow options={PRINT_PALETTE} value={color ?? '#000000'} onChange={onColorChange} />
@@ -83,7 +72,16 @@ export default function FontStyleFields({
     );
 }
 
-function Field({ label, children }: { label: ReactNode; children: ReactNode }) {
+function SwitchRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+    return (
+        <div style={rowStyle}>
+            <span style={textStyle}>{label}</span>
+            <Switch checked={checked} onChange={onChange} aria-label={label} />
+        </div>
+    );
+}
+
+export function Field({ label, children }: { label: ReactNode; children: ReactNode }) {
     return (
         <div style={{ marginBottom: 'var(--sp-4)' }}>
             <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-muted)', marginBottom: 'var(--sp-2)' }}>{label}</label>

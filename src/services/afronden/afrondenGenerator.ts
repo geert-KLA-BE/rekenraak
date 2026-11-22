@@ -1,27 +1,11 @@
 import type { MathBlock, AfrondenExercise } from '../math/types';
 import { getMaskPlaces } from '../math/mathEngine';
+import { formatMathNumber } from '../math/formatters';
 import type { AfrondenConstraints } from '../math/constraintTypes';
+import { targetsFor, roundTo, type RoundTarget } from './roundTargets';
 
-export interface RoundTarget { key: string; label: string; weight: number; }
-
-// Natural rounding targets (units excluded — rounding to E is a no-op).
-const NATURAL_TARGETS: RoundTarget[] = [
-    { key: 'T',  label: 'tiental',        weight: 10 },
-    { key: 'H',  label: 'honderdtal',     weight: 100 },
-    { key: 'D',  label: 'duizendtal',     weight: 1000 },
-    { key: 'TD', label: 'tienduizendtal', weight: 10000 },
-];
-
-// Decimal rounding targets.
-const DECIMAL_TARGETS: RoundTarget[] = [
-    { key: 'E', label: 'eenheid',     weight: 1 },
-    { key: 't', label: 'tiende',      weight: 0.1 },
-    { key: 'h', label: 'honderdste',  weight: 0.01 },
-];
-
-export function targetsFor(numberType: string): RoundTarget[] {
-    return numberType === 'decimal' ? DECIMAL_TARGETS : NATURAL_TARGETS;
-}
+// The target table and roundTo live in roundTargets.ts so the worked steps can read them without this generator.
+export { type RoundTarget, targetsFor, ROUND_SCALE, roundTo } from './roundTargets';
 
 // Targets that actually CHANGE a number under these settings:
 //  - natural: weight must be below maxGetal (rounding to a place ≥ the max is a no-op).
@@ -31,13 +15,35 @@ export function targetsFor(numberType: string): RoundTarget[] {
 export function usableTargets(numberType: string, maxGetal: number, decimalPlaces: number, selected: string[]): RoundTarget[] {
     const minChanging = Math.pow(10, -decimalPlaces);
     return targetsFor(numberType).filter(t => selected.includes(t.key) && (
-        numberType === 'decimal' ? t.weight > minChanging + 1e-9 : t.weight < maxGetal
+        numberType === 'decimal' ? t.weight > minChanging + 1e-9 : naturalTargetOffered(t, maxGetal)
     ));
 }
 
-// Decimal-safe round to a place weight (10, 100, 0.1, 0.01, …).
-export function roundTo(n: number, weight: number): number {
-    return Number((Math.round(n / weight) * weight).toFixed(6));
+// The columns a block really prints: usable targets, else the first one (viewer, generator and title agree).
+export function columnTargets(c: AfrondenConstraints): RoundTarget[] {
+    const numberType = c.numberType ?? 'natural';
+    const maxGetal = c.maxGetal ?? (numberType === 'decimal' ? 100 : 1000);
+    const decimalPlaces = c.decimalPlaces ?? 2;
+    const selected = c.roundTargets ?? (numberType === 'decimal' ? ['E', 't'] : ['T', 'H']);
+    const usable = usableTargets(numberType, maxGetal, decimalPlaces, selected);
+    return usable.length ? usable : [targetsFor(numberType)[0]];
+}
+
+// SYNC: AfrondenConfig offers exactly these pills for a natural block.
+export function naturalTargetOffered(t: RoundTarget, maxGetal: number): boolean {
+    return t.inclusive ? t.weight <= maxGetal : t.weight < maxGetal;
+}
+
+/** The column header a sheet prints for a target: the short heading, else its key. */
+export function targetHeading(t: RoundTarget): string {
+    return t.heading ?? t.key;
+}
+
+// The rounded value as the key prints it: a decimal target keeps its own decimals, so 55,97
+// rounded to the tiende reads "56,0" in a t column, never "56".
+export function roundedText(n: number, t: RoundTarget): string {
+    const decimals = t.weight < 1 ? Math.round(-Math.log10(t.weight)) : 0;
+    return formatMathNumber(roundTo(n, t.weight).toFixed(decimals));
 }
 
 function randInt(min: number, max: number) {
@@ -46,7 +52,9 @@ function randInt(min: number, max: number) {
 
 function buildNatural(maxGetal: number, numberMask: Record<string, boolean>): number {
     const active = getMaskPlaces(maxGetal, 'natural').filter(p => numberMask[p.key]);
-    if (!active.length) return randInt(1, maxGetal);
+    // From 5: a smaller number rounds to 0 on the tiental ("2 ≈ 0") and teaches nothing.
+    const floor = Math.min(5, maxGetal);
+    if (!active.length) return randInt(floor, maxGetal);
     // Retry the masked build until it fits (a top place near maxGetal can overshoot);
     // only an impossible mask drops to a free number, so the mask is honored whenever
     // it can produce an in-range value (was: silently random on the first overshoot).
@@ -55,7 +63,7 @@ function buildNatural(maxGetal: number, numberMask: Record<string, boolean>): nu
         for (const p of active) n += randInt(1, 9) * p.weight;
         if (n <= maxGetal) return n;
     }
-    return randInt(1, maxGetal);
+    return randInt(floor, maxGetal);
 }
 
 // Decimal number with `decimalPlaces` digits after the comma, in [0.1, maxGetal].
@@ -82,6 +90,8 @@ export function generateAfrondenExercises(block: MathBlock): AfrondenExercise[] 
 
     const newNumber = () => (numberType === 'decimal' ? buildDecimal(maxGetal, decimalPlaces) : buildNatural(maxGetal, numberMask));
     const count = block.numberOfExercises || 6;
+    // The printed decimals travel with the numbers, so 4,10 keeps its zero beside 70,34.
+    const dp = numberType === 'decimal' ? { decimalPlaces } : {};
 
     if (subType === 'simpel') {
         const out: AfrondenExercise[] = [];
@@ -89,12 +99,15 @@ export function generateAfrondenExercises(block: MathBlock): AfrondenExercise[] 
         let attempts = 0;
         while (out.length < count && attempts < 20000) {
             attempts++;
-            const number = newNumber();
             const targetKey = pool[randInt(0, pool.length - 1)];
+            const weight = all.find(t => t.key === targetKey)?.weight ?? 1;
+            // A number that rounds to 0 on this target shows nothing: redraw it (a few tries, a mask may allow no other).
+            let number = newNumber();
+            for (let t = 0; t < 50 && roundTo(number, weight) === 0; t++) number = newNumber();
             const key = `${number}-${targetKey}`;
             if (seen.has(key)) continue;
             seen.add(key);
-            out.push({ id: Math.random().toString(36).substring(2, 9), number, targetKey, isManuallyEdited: false });
+            out.push({ id: Math.random().toString(36).substring(2, 9), number, targetKey, ...dp, isManuallyEdited: false });
         }
         return out;
     }
@@ -104,6 +117,6 @@ export function generateAfrondenExercises(block: MathBlock): AfrondenExercise[] 
         const nums = new Set<number>();
         let g = 0;
         while (nums.size < roosterSize && g++ < roosterSize * 60) nums.add(newNumber());
-        return { id: Math.random().toString(36).substring(2, 9), numbers: [...nums], isManuallyEdited: false };
+        return { id: Math.random().toString(36).substring(2, 9), numbers: [...nums], ...dp, isManuallyEdited: false };
     });
 }

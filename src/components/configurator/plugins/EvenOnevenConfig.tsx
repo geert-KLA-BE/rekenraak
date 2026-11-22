@@ -3,15 +3,16 @@ import type { MathBlock } from '../../../services/math/types';
 import { sharedPluginStyles as styles } from './sharedPluginStyles';
 import SettingLabel from './SettingLabel';
 import PopupSelect from '../../ui/PopupSelect';
+import { presetLabel } from '../../../config/numberRanges';
+import { useMaxPresets } from '../useMaxPresets';
 import type { EvenOnevenConstraints } from '../../../services/math/constraintTypes';
 
 interface Props { block: MathBlock; }
 
-const MAX_PRESETS = [20, 100, 1000, 10000];
-
 export default function EvenOnevenConfig({ block }: Props) {
     const [c, patch] = useConstraints<EvenOnevenConstraints>(block);
-    const { subType = 'rooster', maxGetal = 100, target = 'even', perRow = 10 } = c;
+    const range = useMaxPresets(block);
+    const { subType = 'rooster', maxGetal = 100, target = 'even' } = c;
 
     const set = (key: string, value: unknown) =>
         patch({ [key]: value } as Partial<EvenOnevenConstraints>);
@@ -22,30 +23,23 @@ export default function EvenOnevenConfig({ block }: Props) {
             <div style={styles.section}>
                 <SettingLabel text="Kleur de:" info="Welke getallen de leerling moet inkleuren (even of oneven)." />
                 <div style={styles.buttonGroup}>
-                    <button onClick={() => set('target', 'even')} style={styles.radioBtn(target === 'even')}>Even getallen</button>
-                    <button onClick={() => set('target', 'oneven')} style={styles.radioBtn(target === 'oneven')}>Oneven getallen</button>
+                    <button onClick={() => set('target', 'even')} aria-pressed={target === 'even'} style={styles.radioBtn(target === 'even')}>Even getallen</button>
+                    <button onClick={() => set('target', 'oneven')} aria-pressed={target === 'oneven'} style={styles.radioBtn(target === 'oneven')}>Oneven getallen</button>
                 </div>
             </div>
 
             {subType === 'rooster' ? (
                 <>
-                    <div style={styles.section}>
+                    {range && <div style={styles.section}>
                         <SettingLabel text="Maximum getal:" info="Het grootste getal in het rooster." />
                         <PopupSelect
                             clampToLowest
                             value={maxGetal}
-                            options={MAX_PRESETS.map(val => ({ value: val, label: `Tot ${val.toLocaleString('nl-BE')}` }))}
+                            options={range.presets.map(val => ({ value: val, label: presetLabel(val) }))}
                             onChange={(val) => set('maxGetal', val)}
                             ariaLabel="Maximum getal"
                         />
-                    </div>
-                    <div style={styles.section}>
-                        <SettingLabel text={`Getallen per rij: ${perRow}`} info="Hoeveel getallen er per rij in het rooster staan." />
-                        <input type="range" min="5" max="14" step="1" value={perRow}
-                            onChange={(e) => set('perRow', Number(e.target.value))}
-                            style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
-                    </div>
-                </>
+                    </div>}                </>
             ) : (
                 <div style={styles.section}>
                     <p style={styles.hint}>
@@ -53,6 +47,22 @@ export default function EvenOnevenConfig({ block }: Props) {
                     </p>
                 </div>
             )}
+        </div>
+    );
+}
+
+// ── Differentiatie: how wide the rooster is.
+// Mounted by Inspector through EXERCISE_UI['even-oneven'].StyleConfig.
+export function EvenOnevenStyleConfig({ block }: Props) {
+    const [c, patch] = useConstraints<EvenOnevenConstraints>(block);
+    const { subType = 'rooster', perRow = 10 } = c;
+    if (subType !== 'rooster') return null;
+    return (
+        <div style={{ ...styles.section, marginTop: '12px' }}>
+            <SettingLabel text={`Getallen per rij: ${perRow}`} info="Hoeveel getallen er per rij in het rooster staan." />
+            <input type="range" min="5" max="14" step="1" value={perRow}
+                onChange={(e) => patch({ perRow: Number(e.target.value) })}
+                style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
         </div>
     );
 }

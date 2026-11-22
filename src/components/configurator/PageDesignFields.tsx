@@ -3,10 +3,9 @@ import { UploadSimple, Trash } from '@phosphor-icons/react';
 import { useWorksheetStore, type PageImage } from '../../store/useWorksheetStore';
 import { PAGE_W_PX } from '../layout/PageSheet';
 
-// Inspector's Blad › Afbeeldingen tab: the page's free-standing images (photos/logos,
-// positioned by hand on the sheet). Font size/family live in the Koptekst/Opdrachten/
-// Voettekst tabs. The page-design template library (save/apply/rename/delete) lives in
-// the general menu — PageDesignsModal.tsx.
+// Inspector's Heel het blad › Afbeeldingen section: the page's free-standing images (photos/logos,
+// positioned by hand on the sheet). The page-design template library (save/apply/rename/delete)
+// lives in the general menu — PageDesignsModal.tsx.
 
 // Images are data URLs — there is no backend to host files, so they travel inside
 // docSettings like every other sheet setting (autosave, share link, .rekenraak export).
@@ -72,45 +71,40 @@ export default function PageDesignFields() {
 
     return (
         <>
-            <div style={S.card}>
-                <h4 style={S.cardTitle}>Afbeeldingen</h4>
-                <p style={S.hintText}>Sleep een afbeelding recht op het blad om ze te verplaatsen, de greep in de hoek om ze groter of kleiner te maken, en de greep erboven om ze te draaien. "Voor tekst" laat ze over de oefeningen heen vallen, "achter tekst" erachter.</p>
-                <button type="button" style={S.uploadBtn} onClick={() => inputRef.current?.click()}>
-                    <UploadSimple size={14} /> Afbeelding toevoegen…
-                </button>
-                <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAddImage} />
+            <p style={S.hintText}>Sleep een afbeelding recht op het blad om ze te verplaatsen, de greep in de hoek om ze groter of kleiner te maken, en de greep erboven om ze te draaien. "Voor tekst" laat ze over de oefeningen heen vallen, "achter tekst" erachter. Dat kan op pagina 1 zolang dit deel open staat.</p>
+            <button type="button" style={S.uploadBtn} onClick={() => inputRef.current?.click()}>
+                <UploadSimple size={14} /> Afbeelding toevoegen…
+            </button>
+            <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAddImage} />
 
-                {images.length > 0 && (
-                    <ul style={S.designList}>
-                        {images.map((img) => (
-                            <li key={img.id} style={S.imageRow}>
-                                <img src={img.src} alt="" style={S.imageThumb} />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div className="seg-group">
-                                        <button type="button" className="seg-btn" aria-pressed={img.order === 'back'} onClick={() => updateImage(img.id, { order: 'back' })}>Achter tekst</button>
-                                        <button type="button" className="seg-btn" aria-pressed={img.order === 'front'} onClick={() => updateImage(img.id, { order: 'front' })}>Voor tekst</button>
-                                    </div>
-                                    <label style={{ ...S.label, marginTop: '6px', marginBottom: '2px' }}>Doorzichtigheid: {Math.round(img.opacity * 100)}%</label>
-                                    <input type="range" min={10} max={100} step={5}
-                                        value={Math.round(img.opacity * 100)}
-                                        onChange={(e) => updateImage(img.id, { opacity: Number(e.target.value) / 100 })}
-                                        style={S.range} />
+            {images.length > 0 && (
+                <ul style={S.designList}>
+                    {images.map((img) => (
+                        <li key={img.id} style={S.imageRow}>
+                            <img src={img.src} alt="" style={S.imageThumb} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div className="seg-group">
+                                    <button type="button" className="seg-btn" aria-pressed={img.order === 'back'} onClick={() => updateImage(img.id, { order: 'back' })}>Achter tekst</button>
+                                    <button type="button" className="seg-btn" aria-pressed={img.order === 'front'} onClick={() => updateImage(img.id, { order: 'front' })}>Voor tekst</button>
                                 </div>
-                                <button type="button" style={S.removeBtn} onClick={() => removeImage(img.id)} aria-label="Afbeelding verwijderen" title="Afbeelding verwijderen">
-                                    <Trash size={14} />
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
+                                <label style={{ ...S.label, marginTop: '6px', marginBottom: '2px' }}>Doorzichtigheid: {Math.round(img.opacity * 100)}%</label>
+                                <input type="range" min={10} max={100} step={5}
+                                    value={Math.round(img.opacity * 100)}
+                                    onChange={(e) => updateImage(img.id, { opacity: Number(e.target.value) / 100 })}
+                                    style={S.range} />
+                            </div>
+                            <button type="button" style={S.removeBtn} onClick={() => removeImage(img.id)} aria-label="Afbeelding verwijderen" title="Afbeelding verwijderen">
+                                <Trash size={14} />
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </>
     );
 }
 
 const S = {
-    card: { padding: '0 0 var(--sp-4)', borderBottom: '1px solid var(--separator)' } as React.CSSProperties,
-    cardTitle: { color: 'var(--text-main)', margin: '0 0 var(--sp-3) 0', fontSize: 'var(--text-md)', fontWeight: 600, letterSpacing: '-0.01em' } as React.CSSProperties,
     label: { display: 'block', fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-muted)', marginBottom: 'var(--sp-2)' } as React.CSSProperties,
     hintText: { fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: '0 0 var(--sp-3)', lineHeight: 1.4 } as React.CSSProperties,
     range: { width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' } as React.CSSProperties,

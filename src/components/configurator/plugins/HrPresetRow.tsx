@@ -4,27 +4,33 @@ import type { MathBlock } from '../../../services/math/types';
 import { sharedPluginStyles as styles } from './sharedPluginStyles';
 import SettingLabel from './SettingLabel';
 import PopupSelect from '../../ui/PopupSelect';
+import { presetLabel } from '../../../config/numberRanges';
+import { useMaxPresets } from '../useMaxPresets';
 import type { MulDivConstraints } from '../../../services/math/constraintTypes';
 
 interface Props {
     block: MathBlock;
     // addsub: Vrij / Compenseren · muldiv: Vrij / Met 10-100-1000
     variant: 'addsub' | 'muldiv';
+    // muldiv only: names the numbers the tienvoud maximum can bound.
+    op?: 'x' | ':';
 }
 
 // Top rows of every hoofdrekenen config: Oefenvorm preset + aantal termen/factoren.
 // Presets are generator flavours, not separate exercise types (constraints.preset).
-export default function HrPresetRow({ block, variant }: Props) {
+export default function HrPresetRow({ block, variant, op = 'x' }: Props) {
     const [c, patch] = useConstraints<MulDivConstraints>(block);
     // Inside a gemengd variant tab the oefenvorm IS the variant, so its picker is gone.
     const fixedPreset = useConstraintScope()?.fixedPreset;
     const hidden = useHiddenControls();
+    const range = useMaxPresets(block);
     const preset: string = c.preset ?? 'vrij';
     const termCount: number = Math.min(4, Math.max(2, c.termCount ?? 2));
     const presetDistance: number = c.presetDistance ?? 1;
     const presetFactors: number[] = c.presetFactors ?? [10, 100, 1000];
     const isRest = c.multiplicationMode === 'met_rest';
     const isPreset = preset === 'compenseren' || preset === 'tienvoud';
+    const decimalMulDiv = variant === 'muldiv' && c.numberType === 'decimal';
 
     const set = (key: keyof MulDivConstraints, value: unknown) => patch({ [key]: value } as Partial<MulDivConstraints>);
     const toggleFactor = (f: number) => {
@@ -41,10 +47,10 @@ export default function HrPresetRow({ block, variant }: Props) {
                     ? 'Vrij = gewone sommen. Compenseren = het tweede getal ligt net onder een tienvoud (47 + 29).'
                     : 'Vrij = gewone sommen. Met 10, 100, 1000 = kommaverschuiving met een tienvoud.'} />
                 <div style={styles.buttonGroup}>
-                    <button onClick={() => set('preset', 'vrij')} style={styles.radioBtn(!isPreset)}>Vrij</button>
+                    <button onClick={() => set('preset', 'vrij')} aria-pressed={!isPreset} style={styles.radioBtn(!isPreset)}>Vrij</button>
                     {variant === 'addsub'
-                        ? <button onClick={() => set('preset', 'compenseren')} style={styles.radioBtn(preset === 'compenseren')}>Compenseren</button>
-                        : <button onClick={() => set('preset', 'tienvoud')} style={styles.radioBtn(preset === 'tienvoud')}>Met 10, 100, 1000</button>}
+                        ? <button onClick={() => set('preset', 'compenseren')} aria-pressed={preset === 'compenseren'} style={styles.radioBtn(preset === 'compenseren')}>Compenseren</button>
+                        : <button onClick={() => set('preset', 'tienvoud')} aria-pressed={preset === 'tienvoud'} style={styles.radioBtn(preset === 'tienvoud')}>Met 10, 100, 1000</button>}
                 </div>
             </div>}
 
@@ -52,8 +58,8 @@ export default function HrPresetRow({ block, variant }: Props) {
                 <div style={styles.section}>
                     <SettingLabel text="Afstand tot het tienvoud:" info="29 = afstand 1, 28 = afstand 2." />
                     <div style={styles.buttonGroup}>
-                        <button onClick={() => set('presetDistance', 1)} style={styles.radioBtn(presetDistance === 1)}>1</button>
-                        <button onClick={() => set('presetDistance', 2)} style={styles.radioBtn(presetDistance === 2)}>1 – 2</button>
+                        <button onClick={() => set('presetDistance', 1)} aria-pressed={presetDistance === 1} style={styles.radioBtn(presetDistance === 1)}>1</button>
+                        <button onClick={() => set('presetDistance', 2)} aria-pressed={presetDistance === 2} style={styles.radioBtn(presetDistance === 2)}>1 – 2</button>
                     </div>
                 </div>
             )}
@@ -64,20 +70,31 @@ export default function HrPresetRow({ block, variant }: Props) {
                         <SettingLabel text="Tienvoud:" info="Met welke factoren gerekend wordt." />
                         <div style={styles.buttonGroup}>
                             {[10, 100, 1000].map(f => (
-                                <button key={f} onClick={() => toggleFactor(f)} style={styles.pill(presetFactors.includes(f))}>{f.toLocaleString('nl-BE')}</button>
+                                <button key={f} onClick={() => toggleFactor(f)} aria-pressed={presetFactors.includes(f)} style={styles.pill(presetFactors.includes(f))}>{f.toLocaleString('nl-BE')}</button>
                             ))}
                         </div>
                     </div>
-                    {!hidden.has('maxGetal') && <div style={styles.section}>
+                    {range && !hidden.has('maxGetal') && <div style={styles.section}>
                         {/* The sub-config is hidden for this preset, so max getal lives here. */}
-                        <SettingLabel text="Maximum getal:" info="Het grootste uitgangsgetal (bij : het quotiënt)." />
+                        <SettingLabel text="Maximum getal:" info="Het grootste getal; waarvoor het geldt, kies je hieronder." />
                         <PopupSelect
                             clampToLowest
                             value={c.maxGetal ?? 1000}
-                            options={[100, 1000, 10000].map(v => ({ value: v, label: `Tot ${v.toLocaleString('nl-BE')}` }))}
+                            options={range.presets.map(v => ({ value: v, label: presetLabel(v) }))}
                             onChange={(v) => set('maxGetal', v)}
                             ariaLabel="Maximum getal"
                         />
+                    </div>}
+                    {/* Gemengd caps every answer under its shared max already (capToMax). */}
+                    {range && !hidden.has('maxGetal') && !fixedPreset && <div style={styles.section}>
+                        <SettingLabel text="Maximum voor:" info={op === ':' ? 'Quotiënt = 470 : 10 met 47 tot het maximum. Deeltal = 470 tot het maximum.' : 'Uitgangsgetal = 47 × 10 met 47 tot het maximum. Uitkomst = 470 tot het maximum.'} />
+                        <div style={styles.buttonGroup}>
+                            {[false, true].map(on => (
+                                <button key={String(on)} onClick={() => set('tienvoudTotMax', on)} aria-pressed={!!c.tienvoudTotMax === on} style={styles.radioBtn(!!c.tienvoudTotMax === on)}>
+                                    {on ? (op === ':' ? 'Deeltal' : 'Uitkomst') : (op === ':' ? 'Quotiënt' : 'Uitgangsgetal')}
+                                </button>
+                            ))}
+                        </div>
                     </div>}
                 </>
             )}
@@ -86,11 +103,14 @@ export default function HrPresetRow({ block, variant }: Props) {
             {!isPreset && !isRest && (
                 <div style={styles.section}>
                     <SettingLabel text={termLabel} info="Kettingen van 3 of 4 getallen in één som (a + b + c = …)." />
-                    <div style={styles.buttonGroup}>
-                        {[2, 3, 4].map(n => (
-                            <button key={n} onClick={() => set('termCount', n)} style={styles.radioBtn(termCount === n)}>{n}</button>
-                        ))}
-                    </div>
+                    {/* The engine chains ×/: on natural numbers only; decimal ×/: stays 2 factors. */}
+                    {decimalMulDiv
+                        ? <p style={styles.hint}>Kettingen van 3 of 4 factoren enkel bij natuurlijke getallen.</p>
+                        : <div style={styles.buttonGroup}>
+                            {[2, 3, 4].map(n => (
+                                <button key={n} onClick={() => set('termCount', n)} aria-pressed={termCount === n} style={styles.radioBtn(termCount === n)}>{n}</button>
+                            ))}
+                        </div>}
                 </div>
             )}
         </>

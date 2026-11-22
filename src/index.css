@@ -92,6 +92,9 @@
   position: relative;
   box-sizing: border-box;
 }
+/* Clears the page label that hangs above the first page; nothing when no banner shows. */
+.sheet-banners:not(:empty) { padding-bottom: 24px; }
+
 .page-sheet-tag {
   position: absolute; top: -20px; left: 2px;
   font-size: 11px; color: var(--text-muted); user-select: none;
@@ -160,6 +163,7 @@
 .page-sheet-foot .print-tfoot-inner {
   display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4);
   padding-top: 6px;
+  /* SYNC: the print rule for .page-sheet-foot .print-tfoot-inner (same face on paper). */
   font-family: var(--font-sheet-footer); font-size: 9pt; color: #666;
 }
 .page-sheet-foot .print-tfoot-inner > span { flex: 1 1 0; min-width: 0; }
@@ -291,6 +295,43 @@ input[type="range"]:disabled { opacity: 0.4; }
 input[type="range"]:focus-visible { box-shadow: none; }
 input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: var(--shadow-focus); }
 input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: var(--shadow-focus); }
+
+/* Bordmodus rail: its sizes follow the rail's own height (the board-rail size container, so a
+   dismissed beta strip counts; cqh and the query read the content box = rail - 16px padding).
+   Below a 833px rail the tool buttons go 44 -> 40, + 52 -> 44, separators lose 4px: the 565px of
+   rail around the ink section becomes 505px. */
+[data-board-rail] > * { --rail-btn: 44px; --rail-add: 52px; --rail-sep: 4px; }
+@container board-rail (height < 817px) {
+  [data-board-rail] > * { --rail-btn: 40px; --rail-add: 44px; --rail-sep: 2px; }
+}
+
+/* The ink section: --ink-b = the rail height left for 4 swatches + slider + dot box once the rest
+   of the rail (565 / 505px, minus the 16px padding cqh leaves out) and the section's fixed 50px
+   (gaps, number, 2px slack) are taken.
+   B 218 -> 332 maps linearly onto swatch 30 -> 44, slider 66 -> 120, dot box 32 -> 36
+   (4s + h + d = B): full sizes from a 947px rail, the minimum at 1280x800 with the beta strip
+   (774px rail, compact rest); the compact rail holds B at 218 so nothing jumps at the switch. */
+.board-ink {
+  --ink-b: calc(100cqh - 599px);
+  --ink-swatch: clamp(24px, calc(30px + (var(--ink-b) - 218px) * 14 / 114), 44px);
+  --ink-slider: clamp(50px, calc(66px + (var(--ink-b) - 218px) * 54 / 114), 120px);
+  --ink-dot: clamp(28px, calc(32px + (var(--ink-b) - 218px) * 4 / 114), 36px);
+}
+@container board-rail (height < 817px) {
+  .board-ink { --ink-b: min(calc(100cqh - 539px), 218px); }
+}
+.board-ink-swatches { display: grid; grid-template-columns: var(--ink-swatch, 30px); gap: 6px; justify-content: center; }
+.board-ink-swatch { width: var(--ink-swatch, 30px); height: var(--ink-swatch, 30px); }
+.board-ink-dotbox { width: var(--ink-dot, 32px); height: var(--ink-dot, 32px); }
+
+/* The size slider: upright (writing-mode in InkRail.tsx), an 8px track and a 26px thumb a finger
+   can hold on a digibord; the rail section dims itself, so the generic disabled fade is undone. */
+input.board-ink-range { width: 30px; height: var(--ink-slider, 66px); margin: 0; }
+input.board-ink-range::-webkit-slider-runnable-track { width: 8px; height: 100%; border-radius: var(--radius-pill); }
+input.board-ink-range::-moz-range-track { width: 8px; height: 100%; border-radius: var(--radius-pill); }
+input.board-ink-range::-webkit-slider-thumb { width: 26px; height: 26px; margin-top: 0; margin-left: -9px; background: var(--bg-surface); border-color: var(--text-muted); }
+input.board-ink-range::-moz-range-thumb { width: 26px; height: 26px; background: var(--bg-surface); border-color: var(--text-muted); }
+input.board-ink-range:disabled { opacity: 1; cursor: not-allowed; }
 
 /* Apple-style keyboard focus: a soft accent ring, only for keyboard users
    (:focus-visible), never a hard browser outline. */
@@ -577,6 +618,19 @@ textarea:focus-visible,
 /* Side panels are always visible now — no compact flyout, no pin. A narrow window
    shrinks the sheet (App.tsx sheetZoom) instead of hiding a panel. */
 
+/* Narrow laptops: the three columns shed width in stages so the sheet column keeps room
+   (inline widths on the panels, hence !important). At 820 px the fixed 286 + 366 left the
+   sheet 170 px and the block rail landed on the Inspector. */
+@media screen and (max-width: 1100px) {
+  .app-panel-left { width: 232px !important; min-width: 232px !important; }
+  .app-panel-right { width: 310px !important; min-width: 310px !important; }
+  .print-scroll { padding-left: 20px !important; padding-right: 20px !important; }
+}
+@media screen and (max-width: 900px) {
+  .app-panel-left { width: 208px !important; min-width: 208px !important; }
+  .app-panel-right { width: 288px !important; min-width: 288px !important; }
+}
+
 /* Mobile/tablet block — hidden on large screens, covers everything on small screens.
    When shown it's a teaser: a looping demo of the desktop UI + why-copy + nudge. */
 .mobile-block { display: none; }
@@ -586,35 +640,47 @@ textarea:focus-visible,
   width: 100%;
   max-width: 360px;
   border-radius: 10px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
-  background: #111;
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
 }
-.mobile-block-title { font-size: 20px; font-weight: 700; }
-.mobile-block > span:not(.mobile-block-title) { max-width: 420px; font-size: 15px; }
+.mobile-block-title { font-size: 20px; font-weight: 700; color: var(--text-main); }
+.mobile-block > span:not(.mobile-block-title) { max-width: 420px; font-size: 15px; color: var(--text-muted); }
 .mobile-block-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
 .mobile-block-links a {
-  color: #fff; text-decoration: none; font-size: 14px; font-weight: 600;
-  padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 999px;
+  color: var(--text-main); text-decoration: none; font-size: 14px; font-weight: 600;
+  padding: 10px 16px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--bg-surface);
 }
-.mobile-block-links a:first-child { background: var(--accent); border-color: var(--accent); }
+.mobile-block-links a:hover { background: var(--bg-hover); }
+.mobile-block-choice { display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; max-width: 420px; }
+.mobile-block-primary, .mobile-block-secondary {
+  min-height: 48px; padding: 10px 16px; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; cursor: pointer;
+}
+.mobile-block-primary { background: var(--accent); border: 1px solid var(--accent); color: var(--accent-on); }
+.mobile-block-secondary { background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main); }
+.mobile-block-secondary:hover { background: var(--bg-hover); }
 
 @media screen and (max-width: 768px) {
   .mobile-block {
     display: flex;
     position: fixed;
     inset: 0;
-    background: #000;
-    color: #fff;
+    background: var(--bg-base);
+    color: var(--text-main);
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 32px;
-    font-family: 'Azeret Mono', system-ui, sans-serif;
-    font-size: 18px;
-    line-height: 1.6;
+    font-family: var(--font-ui);
+    font-size: 16px;
+    line-height: 1.5;
     z-index: 9999;
     flex-direction: column;
     gap: 16px;
+    /* A short phone scrolls the choice instead of clipping its buttons. */
+    overflow-y: auto;
+    justify-content: safe center;
   }
 }
 
@@ -624,15 +690,15 @@ textarea:focus-visible,
     display: flex;
     position: fixed;
     inset: 0;
-    background: #000;
-    color: #fff;
+    background: var(--bg-base);
+    color: var(--text-main);
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 32px;
-    font-family: 'Azeret Mono', system-ui, sans-serif;
-    font-size: 18px;
-    line-height: 1.6;
+    font-family: var(--font-ui);
+    font-size: 16px;
+    line-height: 1.5;
     z-index: 9999;
     flex-direction: column;
     gap: 16px;
@@ -640,7 +706,7 @@ textarea:focus-visible,
   .mobile-block-hint {
     display: block;
     font-size: 14px;
-    color: #aaa;
+    color: var(--text-muted);
   }
 }
 
@@ -775,12 +841,6 @@ textarea:focus-visible,
      spacer element, not a ::before (pseudo-elements on table-internal boxes are flaky). */
   .print-area > thead.print-thead { display: table-header-group !important; }
   .print-thead-spacer { display: block !important; height: 16mm; }
-  /* Repeating name strip — hidden unless the "herhaal koptekst" toggle is on. */
-  .print-repeat-fields { display: none !important; }
-  .print-area.repeat-header .print-repeat-fields { display: block !important; padding: 0 16mm 4mm !important; box-sizing: border-box; }
-  .print-area.repeat-header .print-thead-spacer { height: 6mm; }
-  /* When the strip repeats up top, drop the page-1 body copy so it isn't duplicated. */
-  .print-area.repeat-header .print-body-fields { display: none !important; }
 
   /* Content cell. A real <td> honours its own padding, so the 16mm side margins live here. */
   .print-area > tbody.print-body { display: table-row-group !important; }
@@ -832,10 +892,10 @@ textarea:focus-visible,
   .page-sheet:last-of-type { page-break-after: auto; break-after: auto; }
   /* Margins live here, not in @page — the dialog's margin setting silently overrides
      @page, so the margins have to come from the content box. */
-    /* 12mm head/foot edges, 20mm sides. SYNC: screen paddings and blockLayout.ts. */
-    .page-sheet-head { padding: 12mm 20mm 0 !important; }
+  /* 12mm head/foot edges, 20mm sides. SYNC: screen paddings and blockLayout.ts. */
+  .page-sheet-head { padding: 12mm 20mm 0 !important; }
   .page-sheet-body { padding: 0 20mm !important; }
-    .page-sheet-foot { padding: 4mm 20mm 12mm !important; }
+  .page-sheet-foot { padding: 4mm 20mm 12mm !important; }
   .page-sheet-tag, .page-sheet-warn { display: none !important; }
 
   /* Sets may split across pages freely. */
@@ -857,3 +917,116 @@ textarea:focus-visible,
      (a single grid container does not fragment across pages in Chrome). */
   .print-row { page-break-inside: avoid !important; break-inside: avoid !important; }
 }
+
+/* ── Eenvoudig: the card pane in the left sidebar and the panel beside it ────
+   Screen chrome only: the panel is a portal on <body> with .no-print, outside the sheet and its
+   measurement. Hover is grey (--bg-hover), selected is a darker grey (--bg-active); the blue stays
+   on the primary button and the existing toggles. */
+.ez-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ez-grades { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); }
+.ez-grades .seg-group { flex: 1; max-width: 190px; }
+.ez-grades .seg-btn { padding: 0 2px; }
+.ez-rule { border: none; height: 1px; background: var(--separator); margin: 0 var(--sp-4); }
+.ez-nav { flex: 1; min-height: 0; overflow-y: auto; padding: var(--sp-2) var(--sp-1); }
+.ez-drawer { position: fixed; top: 0; bottom: 0; width: 720px; max-width: calc(100vw - 208px); background: var(--bg-panel); border-right: 1px solid var(--separator); box-shadow: var(--shadow-3); z-index: 1500; display: flex; flex-direction: column; color: var(--text-main); font-family: var(--font-ui); }
+.ez-head { display: flex; align-items: center; padding: 16px 52px 16px 20px; border-bottom: 1px solid var(--separator); flex-shrink: 0; }
+.ez-head h2 { margin: 0; font-size: 18px; font-weight: 700; }
+.ez-x { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: var(--radius-sm); border: 0; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 19px; line-height: 1; }
+.ez-x:hover { background: var(--bg-hover); color: var(--text-main); }
+.ez-body { flex: 1; min-width: 0; overflow-y: auto; padding: 16px 20px 24px; }
+.ez-wait { color: var(--text-muted); font-size: var(--text-sm); }
+.ez-range { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.ez-range button { padding: 6px 12px; font: 600 13px var(--font-ui); border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--separator); background: var(--bg-surface); color: var(--text-main); }
+.ez-range button:hover { background: var(--bg-hover); }
+.ez-range button[aria-pressed="true"] { background: var(--bg-active); font-weight: 700; }
+.ez-br { flex: 0 0 100%; height: 0; }
+.ez-sec { font-size: 13px; font-weight: 700; color: var(--text-muted); margin: 16px 0 8px; }
+.ez-grid { display: grid; grid-template-columns: repeat(auto-fill, 216px); gap: 12px; }
+.ez-tc { border: 1px solid var(--separator); border-left: 3px solid var(--ez-line); border-radius: 10px; background: var(--bg-surface); padding: 10px; width: 216px; box-sizing: border-box; display: grid; grid-template-rows: 36px 100px 24px; gap: 7px; cursor: pointer; text-align: left; min-width: 0; }
+.ez-tc:hover { background: var(--bg-active); }
+.ez-tc-2 { grid-column: span 2; width: auto; }
+@media (max-width: 700px) { .ez-tc-2 { grid-column: auto; width: 216px; } }
+.ez-tc:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
+.ez-tc-h { display: flex; align-items: center; min-width: 0; }
+.ez-tc-h b { font-size: 13.5px; line-height: 18px; font-weight: 700; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.ez-tc-p { min-width: 0; }
+.ez-tc-r { display: flex; align-items: center; gap: 3px; white-space: nowrap; overflow: hidden; min-width: 0; }
+.ez-tc-l { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-right: 3px; }
+.ez-pill { font: 600 11.5px/1 var(--font-ui); padding: 5px 7px; border-radius: 10px; border: 1px solid var(--separator); background: var(--bg-surface-2); color: var(--text-main); }
+button.ez-pill { cursor: pointer; }
+button.ez-pill:hover { background: var(--bg-active); }
+.ez-pill-all { font-weight: 500; color: var(--text-muted); }
+.ez-tc-own { border: 1.5px dashed var(--separator); background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; min-height: 196px; }
+.ez-tc-own:hover { background: var(--bg-hover); }
+.ez-tc-own b { font-size: 13.5px; }
+.ez-tc-own small { font-size: 12px; color: var(--text-muted); }
+.ez-tc-plus { width: 34px; height: 34px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; }
+.ez-wide { width: 780px; }
+.ez-cb { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 16px; align-items: start; }
+.ez-cb-l { display: grid; gap: 8px; min-width: 0; }
+.ez-cb-l .ez-range { margin-bottom: 2px; }
+.ez-cb-l .ez-range button { padding: 5px 8px; font-size: 12px; }
+.ez-op { border: 1px solid var(--separator); border-radius: 10px; background: var(--bg-surface); overflow: hidden; }
+.ez-op-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; background: transparent; border: 0; cursor: pointer; color: var(--text-main); font: 14px var(--font-ui); text-align: left; }
+.ez-op-head:hover { background: var(--bg-hover); }
+.ez-op-head b { flex: 1; font-weight: 700; }
+.ez-sym { width: 26px; height: 26px; border-radius: 7px; background: var(--bg-surface-2); display: inline-flex; align-items: center; justify-content: center; font: 700 17px var(--font-sheet-math, var(--font-ui)); }
+.ez-op[data-on="true"] .ez-sym { background: var(--bg-active); }
+.ez-sw { width: 36px; height: 20px; border-radius: 10px; background: var(--separator); position: relative; flex-shrink: 0; }
+.ez-sw i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--bg-surface); transition: left .12s; }
+.ez-op[data-on="true"] .ez-sw { background: var(--accent); }
+.ez-op[data-on="true"] .ez-sw i { left: 18px; }
+.ez-op-body { display: grid; gap: 8px; padding: 2px 12px 12px 48px; }
+.ez-line { display: grid; grid-template-columns: 58px minmax(0, 1fr); align-items: center; gap: 6px; }
+.ez-line > span { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.ez-ctrl { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.ez-ctrl em { font-style: normal; font-size: 12px; color: var(--text-muted); margin-left: 5px; }
+.ez-chips button { font: 500 12.5px var(--font-ui); padding: 5px 8px; border-radius: var(--radius-sm); border: 1px solid var(--separator); background: var(--bg-surface-2); color: var(--text-main); cursor: pointer; }
+.ez-chips button:hover { background: var(--bg-active); }
+.ez-chips button[aria-pressed="true"] { background: var(--bg-surface); border-color: var(--text-muted); font-weight: 700; }
+.ez-warn { font-size: 12.5px; color: var(--danger); padding-top: 2px; }
+.ez-cb-r { display: grid; gap: 10px; position: sticky; top: 0; min-width: 0; }
+.ez-pv { background: var(--bg-surface); border: 1px solid var(--separator); border-radius: 10px; padding: 12px; min-width: 0; overflow: hidden; }
+.ez-pv-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
+.ez-pv-h button { border: 0; background: transparent; color: var(--accent); font: 600 12px var(--font-ui); cursor: pointer; padding: 0; }
+.ez-sums { display: grid; gap: 7px; font: 13.5px var(--font-sheet-math, monospace); font-variant-numeric: tabular-nums; color: var(--text-main); }
+.ez-sums div { white-space: nowrap; overflow: hidden; }
+.ez-sums u { display: inline-block; width: 34px; border-bottom: 1.5px solid currentColor; text-decoration: none; height: 1em; vertical-align: -2px; }
+.ez-pv-none { margin: 0; font-size: 13px; color: var(--text-muted); }
+.ez-cta { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-on); font: 700 15px var(--font-ui); cursor: pointer; width: 100%; }
+.ez-cta:hover { background: var(--accent-strong); }
+.ez-cta:disabled { opacity: .5; cursor: default; }
+@media print { .ez-drawer { display: none !important; } }
+/* Three tab labels share the narrowed sidebar (232 / 208 px): trim the segment padding so none is cut. */
+.app-panel-left .panel-head .seg-btn { padding-inline: 4px; min-width: 0; }
+@media screen and (max-width: 1100px) { .app-panel-left .panel-head .seg-btn { font-size: var(--text-xs); } }
+
+/* Stappenhulp QR (docSettings.tutorQr): the footer text keeps its row, the QR sits at the right. */
+.tutor-qr-foot { display: flex; align-items: flex-end; gap: 12px; }
+.tutor-qr-foot > .print-tfoot-inner { flex: 1 1 auto; min-width: 0; }
+/* The QR in its own thin frame, with an optional line that says what it is for. */
+.tutor-qr-box { display: flex; align-items: center; gap: 6px; flex: none; padding: 3px; border: 1px solid currentColor; border-radius: 6px; }
+.tutor-qr-caption { width: 124px; font-family: var(--font-sheet-footer); font-size: calc(var(--sheet-size-text) * 0.7); line-height: 1.25; text-align: right; }
+/* "Oefeningen met [footsteps] hebben stappen.": the key to the marks on the sums, under the caption. */
+.tutor-qr-legend { display: block; margin-top: 0.4em; font-family: var(--font-sheet-footer); font-size: calc(var(--sheet-size-text) * 0.7); line-height: 1.25; }
+.tutor-qr-caption .tutor-qr-legend { font-size: inherit; }
+/* Wider with the legend, so caption + legend stay within the 23 mm code's height and the footer keeps its size. */
+.tutor-qr-caption.has-legend { width: 156px; }
+.tutor-qr-note {
+  position: absolute; inset: 0; display: flex; align-items: center; text-align: center;
+  font-family: var(--font-ui); font-size: 10px; color: var(--danger);
+  border: 1px dashed var(--danger); border-radius: var(--radius-xs); padding: 4px;
+}
+/* The split line (PackedPage.qrSplit): the section rule's 2px ink across the page, a bare code at its end. */
+.tutor-qr-line { position: absolute; left: 0; display: flex; align-items: center; gap: 12px; }
+.tutor-qr-line-rule { flex: 1 1 auto; border-top: 2px solid currentColor; }
+.tutor-qr-line-note {
+  position: absolute; left: 0; top: calc(50% + 8px); max-width: calc(100% - 120px);
+  font-family: var(--font-ui); font-size: 11px; line-height: 1.3; color: var(--text-muted);
+}
+
+/* Sidebar foot: Oefenmodus | Zelf oefenen. The icons keep their size, and a narrow sidebar (a 1024 px window)
+   drops them so both labels fit (they were squeezed to a dot: BUGS 2026-11-14). */
+.mode-row { container-type: inline-size; }
+.mode-row .mode-icon { flex-shrink: 0; }
+@container (max-width: 250px) { .mode-row .mode-icon { display: none; } }

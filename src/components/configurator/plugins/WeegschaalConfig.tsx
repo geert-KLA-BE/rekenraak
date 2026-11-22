@@ -16,8 +16,6 @@ export default function WeegschaalConfig({ block }: Props) {
     const allowed = BEREIK_STEPS[bereikGram] ?? [50];
     const stepGram: number = allowed.includes(c.stepGram) ? c.stepGram : allowed[0];
     const notatie: string = c.notatie ?? 'g';
-    const perRow: number = c.exercisesPerRow ?? 2;
-    const boxHeight: number = c.boxHeight ?? 170;
 
     const set = (key: string, value: unknown) =>
         patch({ [key]: value } as Partial<WeegschaalConstraints>);
@@ -30,8 +28,8 @@ export default function WeegschaalConfig({ block }: Props) {
             <div style={styles.section}>
                 <SettingLabel text="Opdracht:" info="Wijzer aflezen en het gewicht noteren, of het gewicht krijgen en de weegschaal kleuren." />
                 <div style={styles.buttonGroup}>
-                    <button onClick={() => set('mode', 'aflezen')} style={styles.radioBtn(mode === 'aflezen')}>Aflezen</button>
-                    <button onClick={() => set('mode', 'kleuren')} style={styles.radioBtn(mode === 'kleuren')}>Weegschaal kleuren</button>
+                    <button onClick={() => set('mode', 'aflezen')} aria-pressed={mode === 'aflezen'} style={styles.radioBtn(mode === 'aflezen')}>Aflezen</button>
+                    <button onClick={() => set('mode', 'kleuren')} aria-pressed={mode === 'kleuren'} style={styles.radioBtn(mode === 'kleuren')}>Weegschaal kleuren</button>
                 </div>
             </div>
 
@@ -53,7 +51,7 @@ export default function WeegschaalConfig({ block }: Props) {
                 <SettingLabel text="Schaalverdeling:" info="Afstand tussen twee streepjes op de wijzerplaat." />
                 <div style={styles.buttonGroup}>
                     {allowed.map(s => (
-                        <button key={s} onClick={() => set('stepGram', s)} style={styles.radioBtn(stepGram === s)}>per {s} g</button>
+                        <button key={s} onClick={() => set('stepGram', s)} aria-pressed={stepGram === s} style={styles.radioBtn(stepGram === s)}>per {s} g</button>
                     ))}
                 </div>
             </div>
@@ -61,18 +59,29 @@ export default function WeegschaalConfig({ block }: Props) {
             <div style={styles.section}>
                 <SettingLabel text="Antwoordnotatie:" info="Hoe het gewicht genoteerd wordt: in gram, als kommagetal in kg, of samengesteld." />
                 <div style={styles.buttonGroup}>
-                    <button onClick={() => set('notatie', 'g')} style={styles.radioBtn(notatie === 'g')}>g</button>
-                    <button onClick={() => set('notatie', 'kg-komma')} style={styles.radioBtn(notatie === 'kg-komma')}>kg (komma)</button>
-                    <button onClick={() => set('notatie', 'kg-g')} style={styles.radioBtn(notatie === 'kg-g')}>kg + g</button>
+                    <button onClick={() => set('notatie', 'g')} aria-pressed={notatie === 'g'} style={styles.radioBtn(notatie === 'g')}>g</button>
+                    <button onClick={() => set('notatie', 'kg-komma')} aria-pressed={notatie === 'kg-komma'} style={styles.radioBtn(notatie === 'kg-komma')}>kg (komma)</button>
+                    <button onClick={() => set('notatie', 'kg-g')} aria-pressed={notatie === 'kg-g'} style={styles.radioBtn(notatie === 'kg-g')}>kg + g</button>
                 </div>
             </div>
+        </div>
+    );
+}
 
-            <div style={styles.section}>
+// ── Differentiatie: how many dials per row and how big each dial is.
+// Mounted by Inspector through EXERCISE_UI['weegschaal'].StyleConfig.
+export function WeegschaalStyleConfig({ block }: Props) {
+    const [c, patch] = useConstraints<WeegschaalConstraints>(block);
+    const perRow: number = c.exercisesPerRow ?? 2;
+    const boxHeight: number = c.boxHeight ?? 170;
+    return (
+        <>
+            <div style={{ ...styles.section, marginTop: '12px' }}>
                 <SettingLabel text="Weegschalen per rij:" info="Hoeveel wijzerplaten naast elkaar staan." />
                 <PopupSelect
                     value={perRow}
                     options={[2, 3].map(v => ({ value: v, label: String(v) }))}
-                    onChange={(v) => set('exercisesPerRow', v)}
+                    onChange={(v) => patch({ exercisesPerRow: v })}
                     ariaLabel="Per rij"
                 />
             </div>
@@ -80,9 +89,9 @@ export default function WeegschaalConfig({ block }: Props) {
             <div style={styles.section}>
                 <label style={styles.label}>Grootte wijzerplaat: {boxHeight}px</label>
                 <input type="range" min="120" max="220" step="10" value={boxHeight}
-                    onChange={(e) => set('boxHeight', Number(e.target.value))}
+                    onChange={(e) => patch({ boxHeight: Number(e.target.value) })}
                     style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
             </div>
-        </div>
+        </>
     );
 }

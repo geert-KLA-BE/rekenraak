@@ -7,13 +7,17 @@ import { DENOMINATION_CATALOGUE, denominationLabel } from '../../../services/gel
 import SettingLabel from './SettingLabel';
 import type { GeldTeruggevenConstraints } from '../../../services/math/constraintTypes';
 
-const BILL_DENOMS = DENOMINATION_CATALOGUE.filter(d => d.type === 'bill');
+// Bills and the two euro coins: 'Tot €1' / 'Tot €2' are paid with a coin.
+const PAY_DENOMS = DENOMINATION_CATALOGUE.filter(d => d.type === 'bill' || d.type === 'euro-coin');
 
+// max/min are whole euros of the price: 'Tot €1' = prices 0,05–0,95 paid with €1
 const PRICE_PRESETS = [
-    { label: 'Tot €10',   max: 9,   payDefault: [1000] },
-    { label: 'Tot €50',   max: 49,  payDefault: [1000, 2000, 5000] },
-    { label: 'Tot €100',  max: 99,  payDefault: [2000, 5000, 10000] },
-    { label: 'Tot €1000', max: 999, payDefault: [5000, 10000, 20000, 50000] },
+    { label: 'Tot €1',    min: 0, max: 0,   payDefault: [100] },
+    { label: 'Tot €2',    min: 0, max: 1,   payDefault: [200] },
+    { label: 'Tot €10',   min: 1, max: 9,   payDefault: [1000] },
+    { label: 'Tot €50',   min: 1, max: 49,  payDefault: [1000, 2000, 5000] },
+    { label: 'Tot €100',  min: 1, max: 99,  payDefault: [2000, 5000, 10000] },
+    { label: 'Tot €1000', min: 1, max: 999, payDefault: [5000, 10000, 20000, 50000] },
 ];
 
 const CENTEN_OPTIES = [
@@ -38,14 +42,14 @@ export default function GeldTeruggevenConfig({ block }: { block: MathBlock }) {
     const activePreset = PRICE_PRESETS.find(p => p.max === maxPriceEuros);
 
     const applyPreset = (preset: typeof PRICE_PRESETS[0]) => {
-        patch({ minPriceEuros: 1, maxPriceEuros: preset.max, payWithOptions: preset.payDefault });
+        patch({ minPriceEuros: preset.min, maxPriceEuros: preset.max, payWithOptions: preset.payDefault });
     };
 
     const togglePayWith = (valueCents: number) => {
         const next = payWithOptions.includes(valueCents)
             ? payWithOptions.filter(v => v !== valueCents)
             : [...payWithOptions, valueCents];
-        set('payWithOptions', next);
+        if (next.length) set('payWithOptions', next);   // keep ≥1: no biljet = no exercise to make
     };
 
     return (
@@ -56,7 +60,7 @@ export default function GeldTeruggevenConfig({ block }: { block: MathBlock }) {
                 <SettingLabel text="Prijsbereik" info="Bereik van de prijs waarover teruggegeven wordt." />
                 <div style={S.buttonGroup}>
                     {PRICE_PRESETS.map(p => (
-                        <button key={p.max} style={S.radioBtn(activePreset?.max === p.max)}
+                        <button key={p.max} aria-pressed={activePreset?.max === p.max} style={S.radioBtn(activePreset?.max === p.max)}
                             onClick={() => applyPreset(p)}>
                             {p.label}
                         </button>
@@ -70,7 +74,7 @@ export default function GeldTeruggevenConfig({ block }: { block: MathBlock }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {CENTEN_OPTIES.map(opt => (
                         <button key={opt.value}
-                            style={{ ...S.radioBtn(centenDeel === opt.value), textAlign: 'left', display: 'flex', justifyContent: 'space-between' } as React.CSSProperties}
+                            aria-pressed={centenDeel === opt.value} style={{ ...S.radioBtn(centenDeel === opt.value), textAlign: 'left', display: 'flex', justifyContent: 'space-between' } as React.CSSProperties}
                             onClick={() => set('centenDeel', opt.value)}>
                             <span>{opt.label}</span>
                             <span style={{ fontSize: '10px', opacity: 0.7, fontWeight: 'normal' }}>{opt.hint}</span>
@@ -81,9 +85,9 @@ export default function GeldTeruggevenConfig({ block }: { block: MathBlock }) {
 
             {/* ── Betalen met ── */}
             <div style={S.section}>
-                <SettingLabel text="Betalen met (biljetten)" info="Met welke biljetten de klant kan betalen." />
+                <SettingLabel text="Betalen met" info="Met welke biljetten of munten de klant kan betalen." />
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {BILL_DENOMS.map(d => (
+                    {PAY_DENOMS.map(d => (
                         <span key={d.valueCents} style={S.pill(payWithOptions.includes(d.valueCents))}
                             onClick={() => togglePayWith(d.valueCents)}>
                             {denominationLabel(d.valueCents)}
@@ -96,8 +100,8 @@ export default function GeldTeruggevenConfig({ block }: { block: MathBlock }) {
             <div style={S.section}>
                 <SettingLabel text="Antwoord invullen" info="Hoe de leerling het wisselgeld noteert." />
                 <div style={S.buttonGroup}>
-                    <button style={S.radioBtn(antwoordType === 'schrijven')} onClick={() => set('antwoordType', 'schrijven')}>Schrijven</button>
-                    <button style={S.radioBtn(antwoordType === 'tekenen-schrijven')} onClick={() => set('antwoordType', 'tekenen-schrijven')}>Tekenen + schrijven</button>
+                    <button aria-pressed={antwoordType === 'schrijven'} style={S.radioBtn(antwoordType === 'schrijven')} onClick={() => set('antwoordType', 'schrijven')}>Schrijven</button>
+                    <button aria-pressed={antwoordType === 'tekenen-schrijven'} style={S.radioBtn(antwoordType === 'tekenen-schrijven')} onClick={() => set('antwoordType', 'tekenen-schrijven')}>Tekenen + schrijven</button>
                 </div>
             </div>
 
@@ -111,7 +115,7 @@ export default function GeldTeruggevenConfig({ block }: { block: MathBlock }) {
                         { value: 'beide',     label: 'Beide' },
                     ].map(opt => (
                         <button key={opt.value}
-                            style={{ ...S.radioBtn(antwoordFormat === opt.value), justifyContent: 'flex-start', textAlign: 'left' }}
+                            aria-pressed={antwoordFormat === opt.value} style={{ ...S.radioBtn(antwoordFormat === opt.value), justifyContent: 'flex-start', textAlign: 'left' }}
                             onClick={() => set('antwoordFormat', opt.value)}>
                             {opt.label}
                         </button>
@@ -135,18 +139,18 @@ export function GeldTeruggevenStyleConfig({ block }: { block: MathBlock }) {
     const scaffolding: string = c.scaffolding ?? 'ingevuld';
     return (
         <>
-            <label style={{ ...F.label, marginTop: '12px' }}>Scaffolding</label>
+            <label style={{ ...F.label, marginTop: '12px' }}>Hulp op het blad</label>
             <div style={F.optionCol}>
                 {([
-                    { value: 'ingevuld',            label: 'Ingevuld' },
-                    { value: 'basis',               label: 'Basis' },
-                    { value: 'structuur',           label: 'Structuur' },
+                    { value: 'ingevuld',            label: 'Alles ingevuld' },
+                    { value: 'basis',               label: 'Begin en einde ingevuld' },
+                    { value: 'structuur',           label: 'Leeg schema' },
                     { value: 'rechthoek',           label: 'Lege ruimte' },
-                    { value: 'leeg',                label: 'Geen' },
+                    { value: 'leeg',                label: 'Geen hulp' },
                 ] as const).map(opt => (
                     <button key={opt.value}
                         onClick={() => patch({ scaffolding: opt.value })}
-                        style={{ ...F.radioBtn(scaffolding === opt.value), justifyContent: 'flex-start', textAlign: 'left' }}>
+                        aria-pressed={scaffolding === opt.value} style={{ ...F.radioBtn(scaffolding === opt.value), justifyContent: 'flex-start', textAlign: 'left' }}>
                         {opt.label}
                     </button>
                 ))}

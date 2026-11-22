@@ -2,6 +2,8 @@ import { useConstraints } from '../useConstraints';
 import type { MathBlock } from '../../../services/math/types';
 import { sharedPluginStyles as styles } from './sharedPluginStyles';
 import PopupSelect from '../../ui/PopupSelect';
+import { presetLabel } from '../../../config/numberRanges';
+import { useMaxPresets } from '../useMaxPresets';
 import SettingLabel from './SettingLabel';
 import type { DeelbaarheidKleurConstraints } from '../../../services/math/constraintTypes';
 
@@ -9,19 +11,17 @@ interface Props {
     block: MathBlock;
 }
 
-const MAX_PRESETS = [20, 100, 1000];
 const DIVISORS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 export default function DeelbaarheidKleurConfig({ block }: Props) {
     const [c, patch] = useConstraints<DeelbaarheidKleurConstraints>(block);
+    const range = useMaxPresets(block);
     const {
         viewMode: viewModeRaw = 'strip',
         rasterVorm,
         divisors = [2, 5, 10],
         maxGetal = 100,
-        perRow = 10,
         rasterCount = 100,
-        rasterCols = 10,
         showRest = false,
     } = c;
     // 'raster' is a legacy viewMode value (pre C1 step 6); a block saved with it still
@@ -45,8 +45,8 @@ export default function DeelbaarheidKleurConfig({ block }: Props) {
             <div style={styles.section}>
                 <SettingLabel text="Soort:" info="De weergave: rooster of omcirkelen." />
                 <div style={styles.buttonGroup}>
-                    <button onClick={() => set('viewMode', 'strip')} style={styles.radioBtn(viewMode === 'strip')}>Rooster</button>
-                    <button onClick={() => set('viewMode', 'markeren')} style={styles.radioBtn(viewMode === 'markeren')}>Omcirkelen</button>
+                    <button onClick={() => set('viewMode', 'strip')} aria-pressed={viewMode === 'strip'} style={styles.radioBtn(viewMode === 'strip')}>Rooster</button>
+                    <button onClick={() => set('viewMode', 'markeren')} aria-pressed={viewMode === 'markeren'} style={styles.radioBtn(viewMode === 'markeren')}>Omcirkelen</button>
                 </div>
             </div>
 
@@ -54,8 +54,8 @@ export default function DeelbaarheidKleurConfig({ block }: Props) {
                 <div style={styles.section}>
                     <SettingLabel text="Vorm:" info="Lijn: een doorlopende strook. Rechthoek: een vast raster met kolommen." />
                     <div style={styles.buttonGroup}>
-                        <button onClick={() => set('rasterVorm', 'lijn')} style={styles.radioBtn(vorm === 'lijn')}>Lijn</button>
-                        <button onClick={() => set('rasterVorm', 'rechthoek')} style={styles.radioBtn(vorm === 'rechthoek')}>Rechthoek</button>
+                        <button onClick={() => set('rasterVorm', 'lijn')} aria-pressed={vorm === 'lijn'} style={styles.radioBtn(vorm === 'lijn')}>Lijn</button>
+                        <button onClick={() => set('rasterVorm', 'rechthoek')} aria-pressed={vorm === 'rechthoek'} style={styles.radioBtn(vorm === 'rechthoek')}>Rechthoek</button>
                     </div>
                 </div>
             )}
@@ -65,23 +65,23 @@ export default function DeelbaarheidKleurConfig({ block }: Props) {
                 <SettingLabel text="Delers:" info="Welke veelvouden gekleurd of gemarkeerd worden." />
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {DIVISORS.map(d => (
-                        <button key={d} onClick={() => toggleDivisor(d)} style={styles.pill(divisors.includes(d))}>{d}</button>
+                        <button key={d} onClick={() => toggleDivisor(d)} aria-pressed={divisors.includes(d)} style={styles.pill(divisors.includes(d))}>{d}</button>
                     ))}
                 </div>
             </div>
 
             {isRaster ? (
                 <>
-                    <div style={styles.section}>
+                    {range && <div style={styles.section}>
                         <SettingLabel text="Maximum getal:" info="Het grootste getal in het raster." />
                         <PopupSelect
                             clampToLowest
                             value={maxGetal}
-                            options={[100, 1000].map(val => ({ value: val, label: `Tot ${val.toLocaleString('nl-BE')}` }))}
+                            options={range.presets.map(val => ({ value: val, label: presetLabel(val) }))}
                             onChange={(val) => set('maxGetal', val)}
                             ariaLabel="Maximum getal"
                         />
-                    </div>
+                    </div>}
                     <div style={styles.section}>
                         {/* Cap at maxGetal: the raster holds distinct numbers ≤ maxGetal, so you
                             can't have 120 cells when the max is 100 — the generator clamps and the
@@ -90,40 +90,52 @@ export default function DeelbaarheidKleurConfig({ block }: Props) {
                         <input type="range" min="20" max={Math.min(120, maxGetal)} step="10" value={Math.min(rasterCount, maxGetal)}
                             onChange={(e) => set('rasterCount', Number(e.target.value))}
                             style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
-                    </div>
-                    <div style={styles.section}>
-                        <SettingLabel text={`Kolommen: ${rasterCols}`} info="Aantal kolommen in het raster." />
-                        <input type="range" min="5" max="12" step="1" value={rasterCols}
-                            onChange={(e) => set('rasterCols', Number(e.target.value))}
-                            style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
-                    </div>
-                </>
+                    </div>                </>
             ) : (
                 <>
-                    <div style={styles.section}>
+                    {range && <div style={styles.section}>
                         <SettingLabel text="Maximum getal:" info="Het grootste getal in de strook." />
                         <PopupSelect
                             clampToLowest
                             value={maxGetal}
-                            options={MAX_PRESETS.map(val => ({ value: val, label: `Tot ${val.toLocaleString('nl-BE')}` }))}
+                            options={range.presets.map(val => ({ value: val, label: presetLabel(val) }))}
                             onChange={(val) => set('maxGetal', val)}
                             ariaLabel="Maximum getal"
                         />
-                    </div>
-                    <div style={styles.section}>
-                        <SettingLabel text={`Getallen per rij: ${perRow}`} info="Hoeveel getallen er per rij staan." />
-                        <input type="range" min="5" max="14" step="1" value={perRow}
-                            onChange={(e) => set('perRow', Number(e.target.value))}
-                            style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
-                    </div>
-                    <div style={styles.section}>
+                    </div>}                    <div style={styles.section}>
                         <div style={styles.onOffRow}>
                             <span style={styles.onOffLabel}>Rest berekenen</span>
-                            <button onClick={() => set('showRest', !showRest)} style={styles.onOffBtn(showRest)}>{showRest ? 'Aan' : 'Uit'}</button>
+                            <button onClick={() => set('showRest', !showRest)} aria-pressed={!!showRest} style={styles.onOffBtn(showRest)}>{showRest ? 'Aan' : 'Uit'}</button>
                         </div>
                     </div>
                 </>
             )}
+        </div>
+    );
+}
+
+// ── Differentiatie: how wide the strook or the raster is.
+// Mounted by Inspector through EXERCISE_UI['deelbaarheid-kleuren'].StyleConfig.
+export function DeelbaarheidKleurStyleConfig({ block }: Props) {
+    const [c, patch] = useConstraints<DeelbaarheidKleurConstraints>(block);
+    const { viewMode: viewModeRaw = 'strip', rasterVorm, perRow = 10, rasterCols = 10 } = c;
+    // SYNC: the same legacy 'raster' reading as DeelbaarheidKleurConfig above.
+    const viewMode = viewModeRaw === 'raster' ? 'strip' : viewModeRaw;
+    const vorm = rasterVorm ?? (viewModeRaw === 'raster' ? 'rechthoek' : 'lijn');
+    const isRaster = viewMode === 'strip' && vorm === 'rechthoek';
+    return isRaster ? (
+        <div style={{ ...styles.section, marginTop: '12px' }}>
+            <SettingLabel text={`Kolommen: ${rasterCols}`} info="Aantal kolommen in het raster." />
+            <input type="range" min="5" max="12" step="1" value={rasterCols}
+                onChange={(e) => patch({ rasterCols: Number(e.target.value) })}
+                style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
+        </div>
+    ) : (
+        <div style={{ ...styles.section, marginTop: '12px' }}>
+            <SettingLabel text={`Getallen per rij: ${perRow}`} info="Hoeveel getallen er per rij staan." />
+            <input type="range" min="5" max="14" step="1" value={perRow}
+                onChange={(e) => patch({ perRow: Number(e.target.value) })}
+                style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
         </div>
     );
 }

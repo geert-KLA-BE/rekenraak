@@ -1,13 +1,18 @@
 import { useMemo, useRef, useState } from 'react';
-import { X, UploadSimple, FloppyDisk, PencilSimple, Copy, DownloadSimple, Trash, Plus, ArrowRight } from '@phosphor-icons/react';
+import { X, UploadSimple, FloppyDisk, PencilSimple, Copy, DownloadSimple, Trash, Plus, ArrowRight, Share, Warning } from '@phosphor-icons/react';
 import { useWorksheetStore } from '../../store/useWorksheetStore';
 import Wordmark from '../ui/Wordmark';
 import SheetThumbnail from '../shared/SheetThumbnail';
 import {
-    loadPresets, savePreset, updatePreset, renamePreset, deletePreset, duplicatePreset,
+    loadPresets, renamePreset, deletePreset, duplicatePreset,
     exportWorksheetFile, savePresetFromFile, parseWorksheetFile, clearAutosave,
-    type Preset,
+    loadOefenSessies, deleteOefenSessie, renameOefenSessie, duplicateOefenSessie,
+    type Preset, type OefenSessieEntry,
 } from '../../services/persistence';
+import { saveCurrentToLibrary, LIBRARY_FULL_TEXT } from './saveToLibrary';
+import OefenShareModal from '../oefenen/OefenShareModal';
+import { deadRowsOf } from '../oefenen/oefenBuild';
+import type { OefenSessie } from '../../services/oefenen/types';
 
 type SortKey = 'recent' | 'name';
 
@@ -22,6 +27,7 @@ export default function MijnBladenView() {
     const setView = useWorksheetStore((s) => s.setView);
     const loadWorksheet = useWorksheetStore((s) => s.loadWorksheet);
     const clearBlocks = useWorksheetStore((s) => s.clearBlocks);
+    const savedPresetId = useWorksheetStore((s) => s.savedPresetId);
     const setSavedPresetId = useWorksheetStore((s) => s.setSavedPresetId);
     const setFileHandle = useWorksheetStore((s) => s.setFileHandle);
 
@@ -29,10 +35,18 @@ export default function MijnBladenView() {
     const [search, setSearch] = useState('');
     const [sort, setSort] = useState<SortKey>('recent');
     const fileRef = useRef<HTMLInputElement>(null);
+    // Nieuwe oefensessie / Bewerken open the Oefenmodus workspace; its back button returns here.
+    const openOefenmodus = useWorksheetStore((s) => s.openOefenmodus);
+    const [oefenShare, setOefenShare] = useState<OefenSessie | null>(null);
+    // Delen's pre-flight verdict for one library row: the labels of its rows that generate nothing.
+    const [deadOf, setDeadOf] = useState<{ id: string; labels: string[] } | null>(null);
     const bump = () => setRefresh((n) => n + 1);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `refresh` is the explicit re-read trigger after a mutation
     const presets = useMemo(() => loadPresets(), [refresh]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- same explicit re-read trigger
+    const oefenSessies = useMemo(() => loadOefenSessies().sort((a, b) => b.savedAt.localeCompare(a.savedAt)), [refresh]);
 
     const visible = useMemo(() => {
         const needle = search.trim().toLowerCase();
@@ -46,22 +60,13 @@ export default function MijnBladenView() {
     const close = () => setView('editor');
 
     const handleSaveCurrent = () => {
-        const st = useWorksheetStore.getState();
-        if (st.blocks.length === 0) { window.alert('Het huidige blad is leeg.'); return; }
-        if (st.savedPresetId) {
-            if (!updatePreset(st.savedPresetId, st)) { window.alert('Bewaren mislukt. Controleer of het blad nog bestaat en of er voldoende opslagruimte is.'); return; }
-            bump();
-            return;
-        }
-        const name = window.prompt('Naam voor dit blad:', st.header.titel || 'Mijn blad');
-        if (name === null) return;
-        const saved = savePreset(name, st);
-        if (!saved) { window.alert('Bewaren mislukt. Controleer de opslagruimte van je browser.'); return; }
-        setSavedPresetId(saved.id);
-        bump();
+        const outcome = saveCurrentToLibrary();
+        if (outcome === 'updated' || outcome === 'saved') bump();
     };
 
     const handleOpen = (p: Preset) => { loadWorksheet(p.payload, p.id); close(); };
+    // The open sheet's entry may have been deleted in another tab; then Bewaren makes a new one.
+    const linked = !!savedPresetId && presets.some(p => p.id === savedPresetId);
 
     const handleNew = () => {
         if (useWorksheetStore.getState().blocks.length > 0 && !window.confirm('Nieuw blad starten? Het huidige (niet-bewaarde) blad wordt gewist.')) return;
@@ -80,11 +85,40 @@ export default function MijnBladenView() {
     };
 
     const handleDelete = (p: Preset) => {
-        if (window.confirm(`"${p.name}" verwijderen?`)) {
-            deletePreset(p.id);
-            if (useWorksheetStore.getState().savedPresetId === p.id) setSavedPresetId(null);
-            bump();
-        }
+        if (!window.confirm(`"${p.name}" verwijderen?`)) return;
+        deletePreset(p.id);
+        // The open sheet no longer has an entry to update: the next Bewaren asks a name again.
+        if (useWorksheetStore.getState().savedPresetId === p.id) setSavedPresetId(null);
+        bump();
+    };
+
+    const handleDuplicate = (p: Preset) => {
+        if (!duplicatePreset(p.id)) { window.alert(LIBRARY_FULL_TEXT); return; }
+        bump();
+    };
+
+    const handleOefenRename = (e: OefenSessieEntry) => {
+        const name = window.prompt('Nieuwe naam:', e.name);
+        if (name === null) return;
+        renameOefenSessie(e.id, name);
+        bump();
+    };
+
+    const handleOefenDuplicate = (e: OefenSessieEntry) => {
+        if (!duplicateOefenSessie(e.id)) { window.alert('Dupliceren mislukt: de opslag van je browser is vol.'); return; }
+        bump();
+    };
+
+    // The builder's Delen pre-flight: a dead row would end every pupil's run, so no link.
+    const handleOefenShare = (e: OefenSessieEntry) => {
+        const dead = deadRowsOf(e.sessie);
+        if (dead.length) { setDeadOf({ id: e.id, labels: dead.map(r => r.leaf.label) }); return; }
+        setDeadOf(null);
+        setOefenShare(e.sessie);
+    };
+
+    const handleOefenDelete = (e: OefenSessieEntry) => {
+        if (window.confirm(`"${e.name}" verwijderen?`)) { deleteOefenSessie(e.id); bump(); }
     };
 
     const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +130,7 @@ export default function MijnBladenView() {
             try {
                 const parsed = parseWorksheetFile(String(reader.result));
                 const name = file.name.replace(/\.(rekenraak|json)$/i, '');
-                savePresetFromFile(parsed, name);
+                if (!savePresetFromFile(parsed, name)) { window.alert(LIBRARY_FULL_TEXT); return; }
                 bump();
             } catch (err) {
                 window.alert(`Importeren mislukt: ${(err as Error).message}`);
@@ -106,7 +140,8 @@ export default function MijnBladenView() {
     };
 
     return (
-        <div style={S.overlay}>
+        // no-print: Ctrl+P with this overlay open prints the sheet underneath (as WhiteboardView does).
+        <div className="no-print" style={S.overlay}>
             <input ref={fileRef} type="file" accept=".rekenraak,application/json,.json" style={{ display: 'none' }} onChange={handleImport} />
 
             <header style={S.topbar}>
@@ -115,7 +150,7 @@ export default function MijnBladenView() {
                     <span style={S.crumb}>Menu / <b>Mijn bladen (deze browser)</b></span>
                 </div>
                 <div style={S.topActions}>
-                    <button style={S.ghostBtn} onClick={handleSaveCurrent}><FloppyDisk size={15} /> Huidig blad bewaren</button>
+                    <button style={S.ghostBtn} onClick={handleSaveCurrent}><FloppyDisk size={15} /> {linked ? 'Huidig blad bijwerken' : 'Huidig blad bewaren'}</button>
                     <button style={S.ghostBtn} onClick={() => fileRef.current?.click()}><UploadSimple size={15} /> Importeer…</button>
                     <button style={S.closeBtn} onClick={close} aria-label="Sluiten"><X size={18} /></button>
                 </div>
@@ -154,7 +189,7 @@ export default function MijnBladenView() {
                                 <div style={S.cardMeta}>Gewijzigd {formatDate(p.savedAt)} · {p.blockCount} {p.blockCount === 1 ? 'blok' : 'blokken'}</div>
                                 <div style={S.cardActions}>
                                     <button style={S.iconBtn} title="Hernoemen" onClick={() => handleRename(p)}><PencilSimple size={15} /></button>
-                                    <button style={S.iconBtn} title="Dupliceren" onClick={() => { duplicatePreset(p.id); bump(); }}><Copy size={15} /></button>
+                                    <button style={S.iconBtn} title="Dupliceren" onClick={() => handleDuplicate(p)}><Copy size={15} /></button>
                                     <button style={S.iconBtn} title="Exporteren (.rekenraak)" onClick={() => exportWorksheetFile(p.payload, p.name)}><DownloadSimple size={15} /></button>
                                     <button style={{ ...S.iconBtn, color: '#e11d48' }} title="Verwijderen" onClick={() => handleDelete(p)}><Trash size={15} /></button>
                                     <button style={S.openBtn} onClick={() => handleOpen(p)}>Openen <ArrowRight size={14} /></button>
@@ -167,7 +202,44 @@ export default function MijnBladenView() {
                 {presets.length === 0 && (
                     <div style={S.emptyNote}>Nog geen bewaarde bladen. Maak een blad in de editor en klik “Huidig blad bewaren”.</div>
                 )}
+
+                <div style={{ ...S.subhead, marginTop: 'var(--sp-8)' }}>
+                    <div>
+                        <h2 style={S.h2}>Oefensessies</h2>
+                        <span style={S.subMeta}>{oefenSessies.length} bewaard · voor de oefenmodus op het toestel van de leerlingen</span>
+                    </div>
+                    <button style={S.ghostBtn} onClick={() => openOefenmodus()}><Plus size={15} /> Nieuwe oefensessie</button>
+                </div>
+                {oefenSessies.length === 0 ? (
+                    <div style={S.emptyNote}>Nog geen oefensessies. Klik “Nieuwe oefensessie” en bewaar ze hier om morgen opnieuw te delen.</div>
+                ) : (
+                    <div style={S.oefenList}>
+                        {oefenSessies.map((e) => (
+                            <div key={e.id} style={S.oefenRow}>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={S.cardTitle} title={e.name}>{e.name}</div>
+                                    <div style={S.cardMeta}>
+                                        {e.sessie.types.length} {e.sessie.types.length === 1 ? 'soort' : 'soorten'}
+                                        {e.sessie.timerMin ? ` · ${e.sessie.timerMin} min` : ''} · bewaard {formatDate(e.savedAt)}
+                                    </div>
+                                    {deadOf?.id === e.id && (
+                                        <div style={S.deadNote} role="alert">
+                                            <Warning size={14} /> {deadOf.labels.join(', ')} {deadOf.labels.length === 1 ? 'levert' : 'leveren'} geen oefeningen op. Pas de sessie aan via Bewerken om te delen.
+                                        </div>
+                                    )}
+                                </div>
+                                <button style={S.iconBtn} title="Hernoemen" onClick={() => handleOefenRename(e)}><PencilSimple size={15} /></button>
+                                <button style={S.iconBtn} title="Dupliceren" aria-label="Dupliceren" onClick={() => handleOefenDuplicate(e)}><Copy size={15} /></button>
+                                <button style={S.ghostBtn} onClick={() => handleOefenShare(e)}><Share size={15} /> Delen</button>
+                                <button style={S.ghostBtn} onClick={() => openOefenmodus(e.sessie.title ? e.sessie : { ...e.sessie, title: e.name.slice(0, 60) })}><PencilSimple size={15} /> Bewerken</button>
+                                <button style={{ ...S.iconBtn, color: 'var(--danger)' }} title="Verwijderen" aria-label="Verwijderen" onClick={() => handleOefenDelete(e)}><Trash size={15} /></button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
+
+            {oefenShare && <OefenShareModal sessie={oefenShare} onClose={() => setOefenShare(null)} />}
         </div>
     );
 }
@@ -183,7 +255,11 @@ const S = {
     body: { flex: 1, overflowY: 'auto', padding: 'var(--sp-5) var(--sp-6)' } as React.CSSProperties,
     subhead: { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--sp-4)', marginBottom: 'var(--sp-5)', flexWrap: 'wrap' } as React.CSSProperties,
     h1: { margin: 0, fontSize: 'var(--text-2xl)', color: 'var(--text-main)' } as React.CSSProperties,
+    h2: { margin: 0, fontSize: 'var(--text-xl)', color: 'var(--text-main)' } as React.CSSProperties,
+    oefenList: { display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' } as React.CSSProperties,
+    oefenRow: { display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', padding: 'var(--sp-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--separator)', background: 'var(--bg-surface)', boxShadow: 'var(--shadow-1)' } as React.CSSProperties,
     subMeta: { fontSize: 'var(--text-sm)', color: 'var(--text-muted)' } as React.CSSProperties,
+    deadNote: { display: 'flex', alignItems: 'center', gap: 'var(--sp-1)', marginTop: 'var(--sp-1)', fontSize: 'var(--text-sm)', color: 'var(--danger)', fontWeight: 600 } as React.CSSProperties,
     controls: { display: 'flex', gap: 'var(--sp-2)', alignItems: 'center' } as React.CSSProperties,
     search: { padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--separator)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: 'var(--text-sm)', minWidth: '240px' } as React.CSSProperties,
     sortSel: { padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--separator)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: 'var(--text-sm)', cursor: 'pointer' } as React.CSSProperties,

@@ -1,49 +1,55 @@
-// Selectable document fonts. These are CSS font-family values, not bundled files: only
-// Ubuntu (text) and Azeret Mono (math) ship with the app (offline-safe, @fontsource in
-// index.css); the plain entries below rely on a font already installed on the teacher's
-// own machine (the same "pick a font from a list" model as Word), silently falling back
-// to the next name in the stack if it isn't. Entries with `google` are loaded live from
-// the Google Fonts CDN (services/googleFonts.ts) the first time they're picked — these
-// need an internet connection at print/preview time and are NOT self-hosted.
+// The sheet's maths face as a literal, for JS that cannot resolve a CSS variable (canvas
+// measureText, layout estimates). Everything that renders uses var(--font-sheet-math).
+// SYNC: theme.css --font-sheet-math
+export const SHEET_MATH_FONT = "'Azeret Mono', monospace";
+
+// One pickable sheet font. `value` is the CSS font-family written onto a --font-sheet-*
+// token; `load` pulls a self-hosted @fontsource face in on first use (Latin 400 + 700 only)
+// so the default bundle stays Ubuntu + Azeret Mono. No load = shipped already, or a system
+// font that only exists on a computer that has it installed.
 export interface FontOption {
     label: string;
-    value: string; // CSS font-family value, fed onto --font-sheet-text / --font-sheet-math
-    google?: string; // Google Fonts API v2 family query, e.g. "Roboto:wght@400;700"
+    value: string;
+    load?: () => Promise<unknown>;
 }
 
-// The words face (opdrachten, titel, koptekst/voettekst). No monospace constraint here.
+// Shown under every picker: a system font is not on the paper of a computer that lacks it.
+export const INSTALLED_SUFFIX = '(als geïnstalleerd)';
+
+// Words: opdrachten, titel, koptekst, veldlabels, voettekst.
 export const TEXT_FONT_OPTIONS: FontOption[] = [
     { label: 'Ubuntu (standaard)', value: "'Ubuntu', system-ui, sans-serif" },
-    { label: 'Arial', value: "Arial, 'Helvetica Neue', sans-serif" },
-    { label: 'Calibri', value: "Calibri, 'Segoe UI', sans-serif" },
-    { label: 'Verdana', value: "Verdana, Geneva, sans-serif" },
-    { label: 'Tahoma', value: "Tahoma, Geneva, sans-serif" },
-    { label: 'Segoe UI', value: "'Segoe UI', Tahoma, sans-serif" },
-    { label: 'Kalinga', value: "Kalinga, 'Nirmala UI', sans-serif" },
-    { label: 'Century Gothic', value: "'Century Gothic', 'URW Gothic', sans-serif" },
-    { label: 'Comic Sans MS', value: "'Comic Sans MS', 'Comic Neue', cursive, sans-serif" },
-    { label: 'Georgia', value: "Georgia, 'Times New Roman', serif" },
-    { label: 'Times New Roman', value: "'Times New Roman', Times, serif" },
-    // Online (Google Fonts) — needs internet at print/preview time.
-    { label: 'Roboto (online)', value: "'Roboto', sans-serif", google: 'Roboto:wght@400;700' },
-    { label: 'Open Sans (online)', value: "'Open Sans', sans-serif", google: 'Open+Sans:wght@400;700' },
-    { label: 'Lato (online)', value: "'Lato', sans-serif", google: 'Lato:wght@400;700' },
-    { label: 'Montserrat (online)', value: "'Montserrat', sans-serif", google: 'Montserrat:wght@400;700' },
-    { label: 'Nunito (online)', value: "'Nunito', sans-serif", google: 'Nunito:wght@400;700' },
-    { label: 'Poppins (online)', value: "'Poppins', sans-serif", google: 'Poppins:wght@400;700' },
+    { label: 'Andika', value: "'Andika', 'Ubuntu', sans-serif", load: () => Promise.all([import('@fontsource/andika/latin-400.css'), import('@fontsource/andika/latin-700.css')]) },
+    { label: 'Atkinson Hyperlegible', value: "'Atkinson Hyperlegible', 'Ubuntu', sans-serif", load: () => Promise.all([import('@fontsource/atkinson-hyperlegible/latin-400.css'), import('@fontsource/atkinson-hyperlegible/latin-700.css')]) },
+    { label: 'Lexend', value: "'Lexend', 'Ubuntu', sans-serif", load: () => Promise.all([import('@fontsource/lexend/latin-400.css'), import('@fontsource/lexend/latin-700.css')]) },
+    { label: `Arial ${INSTALLED_SUFFIX}`, value: "Arial, 'Helvetica Neue', 'Ubuntu', sans-serif" },
+    { label: `Verdana ${INSTALLED_SUFFIX}`, value: "Verdana, Geneva, 'Ubuntu', sans-serif" },
+    { label: `Comic Sans MS ${INSTALLED_SUFFIX}`, value: "'Comic Sans MS', 'Comic Neue', 'Ubuntu', sans-serif" },
+    { label: `Calibri ${INSTALLED_SUFFIX}`, value: "Calibri, Carlito, 'Ubuntu', sans-serif" },
 ];
 
-// The math/digits face. Kept monospace-only — column arithmetic (cijferen, staartdelingen)
-// only lines up if every glyph shares the same advance; see CLAUDE.md.
+// Digits. Monospace only: column arithmetic (cijferen, staartdelingen) lines up only when
+// every glyph shares one advance.
 export const MATH_FONT_OPTIONS: FontOption[] = [
-    { label: 'Azeret Mono (standaard)', value: "'Azeret Mono', monospace" },
-    { label: 'Consolas', value: "Consolas, 'Cascadia Mono', monospace" },
-    { label: 'Courier New', value: "'Courier New', Courier, monospace" },
-    { label: 'Lucida Console', value: "'Lucida Console', Monaco, monospace" },
-    // Online (Google Fonts) — needs internet at print/preview time.
-    { label: 'Roboto Mono (online)', value: "'Roboto Mono', monospace", google: 'Roboto+Mono:wght@400;700' },
-    { label: 'JetBrains Mono (online)', value: "'JetBrains Mono', monospace", google: 'JetBrains+Mono:wght@400;700' },
-    { label: 'Source Code Pro (online)', value: "'Source Code Pro', monospace", google: 'Source+Code+Pro:wght@400;700' },
-    { label: 'IBM Plex Mono (online)', value: "'IBM Plex Mono', monospace", google: 'IBM+Plex+Mono:wght@400;700' },
+    { label: 'Azeret Mono (standaard)', value: SHEET_MATH_FONT },
+    { label: 'JetBrains Mono', value: "'JetBrains Mono', 'Azeret Mono', monospace", load: () => Promise.all([import('@fontsource/jetbrains-mono/latin-400.css'), import('@fontsource/jetbrains-mono/latin-700.css')]) },
+    { label: `Consolas ${INSTALLED_SUFFIX}`, value: "Consolas, 'Azeret Mono', monospace" },
+    { label: `Courier New ${INSTALLED_SUFFIX}`, value: "'Courier New', Courier, 'Azeret Mono', monospace" },
 ];
 
+const loaded = new Map<string, Promise<unknown>>();
+
+// Load a self-hosted face the first time a sheet uses it (picked, or a loaded sheet that
+// carries it). Unknown values and system / shipped fonts resolve at once.
+export function ensureFontLoaded(value: string | undefined): Promise<unknown> {
+    if (!value) return Promise.resolve();
+    const opt = [...TEXT_FONT_OPTIONS, ...MATH_FONT_OPTIONS].find(o => o.value === value);
+    if (!opt?.load) return Promise.resolve();
+    let p = loaded.get(value);
+    if (!p) {
+        // A failed chunk must not stick: the next use retries instead of keeping the fallback.
+        p = opt.load().catch((e) => { loaded.delete(value); console.warn('[fonts] could not load', opt.label, e); });
+        loaded.set(value, p);
+    }
+    return p;
+}

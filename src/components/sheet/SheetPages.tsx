@@ -1,0 +1,255 @@
+import { useCallback, useMemo } from 'react';
+import { useWorksheetStore } from '../../store/useWorksheetStore';
+import PageSheet, { PAGE_W_PX } from '../layout/PageSheet';
+import { skylineSlot, type PackedPage } from '../../services/layout/pagePacker';
+import { splittableCount, fittingSplitIndex } from '../../services/layout/splitBlock';
+import { cellWidthPx } from '../viewer/BlockWidthContext';
+import { WIDTH_FIT_FLOOR } from '../viewer/scaledBlockFit';
+import type { MeasuredHeights } from '../../hooks/useMeasuredHeights';
+import type { SheetDnd } from '../../hooks/useSheetDnd';
+import SheetHeader from './SheetHeader';
+import SheetFooter from './SheetFooter';
+import TutorQr, { TutorQrLine } from './TutorQr';
+import { mergeTutorMarks, SPLIT_NOTE, tutorQrSegment } from './tutorQrSplit';
+import { blockHasTutorSteps } from '../../services/stepsAvailability';
+import EmptySheetHero from './EmptySheetHero';
+import SheetBlock from './SheetBlock';
+import EditableSheetImage from '../layout/EditableSheetImage';
+import type { PageImage } from '../../store/useWorksheetStore';
+
+// The page stack: one PageSheet per packed page, every cell placed where the packer put it.
+export default function SheetPages({ packedPages, blockOrder, measured, dnd, onOpenSplit, sheetZoom = 1 }: {
+  packedPages: PackedPage[];
+  blockOrder: Record<string, number | null>;
+  measured: MeasuredHeights;
+  dnd: SheetDnd;
+  onOpenSplit: (blockId: string, anchorRect: DOMRect, availableOverridePx?: number) => void;
+  // The CSS zoom on the sheet column (useSheetZoom): page-image drags divide pointer deltas by it.
+  sheetZoom?: number;
+}) {
+  const blocks = useWorksheetStore((state) => state.blocks);
+  const headerData = useWorksheetStore((state) => state.header);
+  const footerData = useWorksheetStore((state) => state.footer);
+  const docSettings = useWorksheetStore((state) => state.docSettings);
+  const selectedGrade = useWorksheetStore((state) => state.selectedGrade);
+  const showSolutions = useWorksheetStore((state) => state.showSolutions);
+  const activeSelectionId = useWorksheetStore((state) => state.activeBlockId);
+  const setActiveSelection = useWorksheetStore((state) => state.setActiveSelection);
+  const setInspectorSection = useWorksheetStore((state) => state.setInspectorSection);
+  const updateBlockSettings = useWorksheetStore((state) => state.updateBlockSettings);
+  const updateDocSettings = useWorksheetStore((state) => state.updateDocSettings);
+  const inspectorScope = useWorksheetStore((state) => state.inspectorScope);
+  const bladSection = useWorksheetStore((state) => state.inspectorSections.blad);
+
+  // Clicking the header or footer ON the sheet opens its settings: select the document,
+  // switch to Heel het blad, and open the section for the part that was clicked.
+  const openBladCard = useCallback((card: 'koptekst' | 'voettekst') => {
+    setActiveSelection('document');
+    setInspectorSection('blad', card);
+  }, [setActiveSelection, setInspectorSection]);
+
+  // These callbacks read the live block list instead of closing over `blocks`, so they
+  // stay stable and the memoised SheetBlock is not re-rendered by every block edit.
+  // The oversize banner's "Verklein dit blok": turn the switch on AND take the teacher to
+  // it, so the sheet's fix and the Inspector's switch are visibly the same setting.
+  // setActiveSelection only picks the scope, so the section is opened after it.
+  const fitBlockToPage = useCallback((blockId: string) => {
+    const block = useWorksheetStore.getState().blocks.find(b => b.id === blockId);
+    if (!block) return;
+    updateBlockSettings(blockId, { constraints: { ...block.constraints, fitToPage: true } });
+    setActiveSelection(blockId);
+    setInspectorSection('block', 'ruimte');
+  }, [updateBlockSettings, setActiveSelection, setInspectorSection]);
+
+  // The horizontal twin of fitBlockToPage: a cell whose content is wider than its column
+  // ("Verklein om te passen") gets the same fix as the width picker's own switch.
+  const fitBlockToWidth = useCallback((blockId: string) => {
+    const block = useWorksheetStore.getState().blocks.find(b => b.id === blockId);
+    if (!block) return;
+    updateBlockSettings(blockId, { constraints: { ...block.constraints, fitToWidth: true } });
+    setActiveSelection(blockId);
+    setInspectorSection('block', 'ruimte');
+  }, [updateBlockSettings, setActiveSelection, setInspectorSection]);
+
+  // "Verbreed": one width tier up (1 -> 2 -> 4), offered only below the widest tier.
+  const widenBlock = useCallback((blockId: string) => {
+    const block = useWorksheetStore.getState().blocks.find(b => b.id === blockId);
+    if (!block) return;
+    const current = (block.widthUnits ?? 4) as 1 | 2 | 4;
+    updateBlockSettings(blockId, { widthUnits: current === 1 ? 2 : 4 });
+  }, [updateBlockSettings]);
+
+  const totalScore = blocks.reduce((sum, block) => sum + (block.totalPoints || 0), 0);
+
+  // Page-design images (docSettings.pageImages) are free-standing, not tied to a region, so they
+  // render as PageSheet's imagesBehind/imagesInFront, split by each image's own 'order'. Only
+  // page 1 gets handles (the values are shared by every page), and only while the Inspector shows
+  // Heel het blad › Afbeeldingen, so they never get in the way of ordinary editing.
+  const blockSelected = !!activeSelectionId && activeSelectionId !== 'document' && blocks.some(b => b.id === activeSelectionId);
+  const imagesEditable = bladSection === 'afbeeldingen' && (inspectorScope === 'blad' || !blockSelected);
+  const updatePageImage = (id: string, patch: Partial<PageImage>) => updateDocSettings({
+    pageImages: (useWorksheetStore.getState().docSettings.pageImages ?? []).map((img) => img.id === id ? { ...img, ...patch } : img),
+  });
+  const pageImages = (editable: boolean, order: PageImage['order']) => (docSettings.pageImages ?? [])
+    .filter((img) => img.order === order)
+    .map((img) => (
+      <EditableSheetImage key={img.id} image={img} editable={editable} zoom={sheetZoom} onCommit={(patch) => updatePageImage(img.id, patch)} />
+    ));
+
+  // A column rule needs air on both sides or the right-hand block's digits sit flush
+  // against it. The COLUMN gap widens by 16px when the rule is on; the ROW gap keeps
+  // blockSpacing, so the packer's vertical budget is untouched.
+  const colGapPx = (docSettings.blockSpacing ?? 12) + (docSettings.showColumnDividers ? 16 : 0);
+  const cellWidth = (units: number) => cellWidthPx(units, colGapPx);
+  // Left edge of a cell that starts at column unit `x`: the width of the units before it
+  // plus the one gap that separates them from it.
+  const cellLeft = (x: number) => (x <= 0 ? 0 : cellWidth(x) + colGapPx);
+
+  // Sheet-wide, not per page: a QR on one page and none on the next would let footer heights chase the packer.
+  const tutorQr = useMemo(
+    () => !!docSettings.tutorQr && packedPages.some(p => p.blocks.some(({ block }) => blockHasTutorSteps(block))),
+    [docSettings.tutorQr, packedPages],
+  );
+  // "Nog meer van deze oefening" (absent = on): each code also carries its blocks' Oefenmodus settings when that fits.
+  const tutorMoreOefenen = docSettings.tutorMoreOefenen !== false;
+  // Per page: the footer QR's payloads, the split line's when the packer drew one (its code covers the sums
+  // above it, the footer the rest), and per block which sums the stappenhulp opens with steps ('all' = every
+  // one, a '0101' mask = some, '' = none). Read from the payloads the QRs really carry, so a mark never promises more.
+  const tutorPages = useMemo(() => {
+    if (!tutorQr) return null;
+    return packedPages.map(page => {
+      const split = page.qrSplit;
+      const foot = tutorQrSegment(split ? split.below : page.blocks.map(({ block }) => ({ block })), blockOrder, selectedGrade, tutorMoreOefenen);
+      const line = split ? tutorQrSegment(split.above, blockOrder, selectedGrade, tutorMoreOefenen) : null;
+      const marks = mergeTutorMarks(page.blocks.map(b => b.block), line ? [line, foot] : [foot]);
+      return { payload: foot.payload, lean: foot.lean, more: foot.more, line, marks };
+    });
+  }, [tutorQr, tutorMoreOefenen, packedPages, blockOrder, selectedGrade]);
+  return (
+    <>
+      {packedPages.map((page, pi) => (
+        <PageSheet
+          key={pi}
+          index={pi}
+          total={packedPages.length}
+          contentGap={docSettings.headerContentGap ?? 12}
+          blockSpacing={docSettings.blockSpacing ?? 12}
+          columnGap={colGapPx}
+          onBackgroundClick={() => setActiveSelection('document')}
+          onHeaderClick={() => openBladCard('koptekst')}
+          onFooterClick={() => openBladCard('voettekst')}
+          onBodyMeasure={measured.onBodyMeasure}
+          onCellMeasure={measured.onCellMeasure}
+          onRowsMeasure={tutorQr ? measured.onRowsMeasure : undefined}
+          tailPx={(() => {
+            // The blank tail is not "how far down the ink goes" any more: with a
+            // skyline the next block drops into the LOWEST gap wide enough for it, so
+            // the room it has is measured at its own width.
+            const next = packedPages[pi + 1]?.blocks[0];
+            if (!next) return undefined;
+            return Math.max(0, page.budgetPx - skylineSlot(page.fill, next.width, docSettings.blockSpacing ?? 12).y);
+          })()}
+          onSplitNext={(() => {
+            // Only offer the split when there IS a next page whose first block can be
+            // cut — otherwise the blank tail is simply the end of the worksheet.
+            const next = packedPages[pi + 1]?.blocks[0]?.block;
+            if (!next || splittableCount(next) < 2) return undefined;
+            return (tailPx: number, anchorRect: DOMRect) => onOpenSplit(next.id, anchorRect, tailPx);
+          })()}
+          canSplitNext={(tailPx: number) => {
+            // Same measurement the popover uses, so hint and popover agree. The next
+            // page's first cell is already in the DOM (rendered before this page's hint).
+            const next = packedPages[pi + 1]?.blocks[0]?.block;
+            if (!next) return false;
+            const cell = document.querySelector<HTMLElement>(`[data-block-id="${next.id}"]`);
+            if (!cell) return true; // not measured yet: keep the old behaviour, no flicker
+            const sheet = cell.closest('.page-sheet');
+            const zoom = sheet ? (sheet.getBoundingClientRect().width / PAGE_W_PX) || 1 : 1;
+            return fittingSplitIndex(cell, tailPx, splittableCount(next), zoom) !== null;
+          }}
+          onFitBlock={fitBlockToPage}
+          onSplitBlock={(blockId, anchor) => onOpenSplit(blockId, anchor)}
+          imagesBehind={pageImages(pi === 0 && imagesEditable, 'back')}
+          imagesInFront={pageImages(pi === 0 && imagesEditable, 'front')}
+          header={<SheetHeader header={headerData} docSettings={docSettings} totalScore={totalScore} continuation={pi > 0} />}
+          footer={tutorPages ? (
+              <div className="tutor-qr-foot">
+                <SheetFooter footer={footerData} docSettings={docSettings} pageIndex={pi} pageCount={packedPages.length} />
+                <TutorQr
+                  payload={tutorPages[pi].payload}
+                  lean={tutorPages[pi].lean}
+                  more={tutorPages[pi].more}
+                  caption={docSettings.tutorQrCaption !== false}
+                  captionText={docSettings.tutorQrCaptionText}
+                  legend
+                />
+              </div>
+          ) : <SheetFooter footer={footerData} docSettings={docSettings} pageIndex={pi} pageCount={packedPages.length} />}
+        >
+          {blocks.length === 0 && pi === 0 && (
+            <EmptySheetHero />
+          )}
+          {/* Place every cell EXACTLY where the packer put it: left/top in px, width
+              from its column units, height its own. Nothing flows, so the browser can
+              never move a block away from the position the pagination was costed
+              against — and the page on screen is the page on paper.
+              Only a block that does not start at the left edge has a neighbour beside
+              it, so the column rule is a no-op on a single-column sheet instead of
+              drawing a stray line down the page. */}
+          {page.qrSplit && tutorPages?.[pi].line && (
+            <TutorQrLine top={page.qrSplit.y} width={cellWidth(4)} payload={tutorPages[pi].line.payload} lean={tutorPages[pi].line.lean} more={tutorPages[pi].line.more} note={SPLIT_NOTE} />
+          )}
+          {page.blocks.map((item) => {
+            // Horizontal twin of the page's own overflow banner: a page that runs long
+            // outlines itself and says by how much, but a cell wider than its column
+            // clipped in silence (print hides the overflow, so nobody saw it until
+            // paper). Only fire once the packer could not promote the block any
+            // further — a block that still has a wider tier to grow into is the
+            // packer's job, not the teacher's.
+            const iw = measured.intrinsicOf(item.block.id);
+            const cellPx = cellWidth(item.width);
+            // fitToWidth judges against the shrunk-to floor, same as minWidthUnits: the raw
+            // intrinsic map deliberately holds the size the teacher ASKED for (see
+            // useMeasuredHeights), so the banner must apply the same floor itself or it
+            // would keep firing right after "Verklein om te passen" fixed the cell.
+            const fitsPx = iw && item.block.constraints?.fitToWidth ? iw.px * WIDTH_FIT_FLOOR : iw?.px;
+            const overPx = iw && iw.atWidth === item.width && fitsPx !== undefined ? Math.round(fitsPx - cellPx) : 0;
+            const hOverflow = overPx > 2 && (item.width === 4 || item.promoted);
+            // Only the block under the pointer shows a live zone during a drag.
+            const dropZone = dnd.overId === item.block.id ? dnd.zone : null;
+            const cell = (rest?: NonNullable<typeof item.rest>) => (
+              <SheetBlock
+                key={rest ? `${item.block.id}:rest` : item.block.id}
+                block={item.block}
+                index={blockOrder[item.block.id] ?? null}
+                leftPx={cellLeft(item.x)}
+                topPx={rest ? rest.y : item.y}
+                cellWidthPx={cellWidth(item.w)}
+                widthUnits={item.width}
+                availableWidthPx={cellPx}
+                colGapPx={colGapPx}
+                columnDivider={item.x > 0 && !!docSettings.showColumnDividers}
+                hOverflowPx={hOverflow ? overPx : 0}
+                isActive={item.block.id === activeSelectionId}
+                isDragging={dnd.fromId === item.block.id}
+                showDropZones={dnd.fromId !== null && dnd.fromId !== item.block.id}
+                dropZone={dropZone}
+                dropNoop={dropZone !== null && dnd.isNoop(item.block.id, dropZone)}
+                showSolutions={showSolutions}
+                docSettings={docSettings}
+                stepsMarks={tutorPages?.[pi].marks.get(item.block.id) ?? ''}
+                blockProps={dnd.blockProps}
+                onFitWidth={fitBlockToWidth}
+                onWiden={widenBlock}
+                windowTopPx={rest?.top}
+                windowHeightPx={rest ? rest.h : item.rest ? item.h : undefined}
+              />
+            );
+            // A block cut by the QR split line: its top rows above the line, the rest of the same render under it.
+            return item.rest ? [cell(), cell(item.rest)] : cell();
+          })}
+        </PageSheet>
+      ))}
+    </>
+  );
+}

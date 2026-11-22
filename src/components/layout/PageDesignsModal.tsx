@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FloppyDisk, PencilSimple, Trash } from '@phosphor-icons/react';
 import { useWorksheetStore } from '../../store/useWorksheetStore';
+import type { DocSettings } from '../../store/useWorksheetStore';
 import { loadPageDesigns, savePageDesign, deletePageDesign, renamePageDesign, type PageDesign } from '../../services/persistence';
 import ModalShell from '../ui/ModalShell';
 
@@ -8,82 +9,65 @@ interface Props {
     onClose: () => void;
 }
 
-// General-menu counterpart of the old Inspector "Ontwerp" tab: bewaar/toepas/hernoem/
-// verwijder the named page-design library (docSettings — styles + koptekst/opdrachten/
-// voettekst look + generic content settings, NOT the blocks). Reachable from anywhere,
-// not just while on the Blad panel.
+const DESIGNS_FULL_TEXT = 'Bewaren mislukt: de opslag van deze browser is vol. Verwijder een ander sjabloon of blad en probeer opnieuw.';
+
+// Applying a design REPLACES the look: a key the design never set (an optional style override
+// added later) is cleared too, which a plain merge into docSettings would leave behind.
+function replacementFor(current: DocSettings, design: DocSettings): Partial<DocSettings> {
+    const cleared = Object.fromEntries(Object.keys(current).filter(k => !(k in design)).map(k => [k, undefined]));
+    return { ...cleared, ...design } as Partial<DocSettings>;
+}
+
+// Named page-design library from the main menu: save / apply / rename / delete a snapshot of
+// docSettings (header, footer, opdracht style, spacing, font sizes), never the blocks.
 export default function PageDesignsModal({ onClose }: Props) {
     const docSettings = useWorksheetStore((s) => s.docSettings);
     const updateDocSettings = useWorksheetStore((s) => s.updateDocSettings);
     const [designs, setDesigns] = useState<PageDesign[]>(() => loadPageDesigns());
     const refresh = () => setDesigns(loadPageDesigns());
-    // window.prompt throws (rather than returning null) in some browsers/webviews with
-    // native dialogs disabled — an in-app modal works everywhere, including there.
+    // An in-app name dialog: window.prompt throws in webviews with native dialogs disabled.
     const [nameModal, setNameModal] = useState<{ mode: 'save' | 'rename'; targetId?: string } | null>(null);
     const [nameValue, setNameValue] = useState('');
+    const [nameError, setNameError] = useState<string | null>(null);
+    const [applied, setApplied] = useState<string | null>(null);
 
-    const handleSaveDesign = () => { setNameValue(''); setNameModal({ mode: 'save' }); };
-    const handleApply = (d: PageDesign) => {
-        if (window.confirm(`Pagina-ontwerp "${d.name}" toepassen op dit blad?`)) updateDocSettings(d.docSettings);
+    const openName = (mode: 'save' | 'rename', value: string, targetId?: string) => {
+        setNameValue(value);
+        setNameError(null);
+        setNameModal({ mode, targetId });
     };
-    const handleRename = (d: PageDesign) => { setNameValue(d.name); setNameModal({ mode: 'rename', targetId: d.id }); };
+    const handleApply = (d: PageDesign) => {
+        if (!window.confirm(`Sjabloon "${d.name}" toepassen?\nVervangt de vormgeving van dit blad, de oefeningen blijven.`)) return;
+        // Fonts the template names load through App's docSettings font effect (ensureFontLoaded).
+        updateDocSettings(replacementFor(useWorksheetStore.getState().docSettings, d.docSettings));
+        setApplied(d.id);
+    };
     const handleDelete = (d: PageDesign) => {
-        if (window.confirm(`"${d.name}" verwijderen?`)) { deletePageDesign(d.id); refresh(); }
+        if (!window.confirm(`Sjabloon "${d.name}" verwijderen?`)) return;
+        deletePageDesign(d.id);
+        refresh();
     };
     const handleNameConfirm = () => {
         if (!nameModal) return;
-        if (nameModal.mode === 'save') {
-            if (!savePageDesign(nameValue, docSettings)) {
-                window.alert('Opslaan mislukt: de opslagruimte van je browser zit vol. Verwijder een ander pagina-ontwerp of gebruik kleinere afbeeldingen en probeer opnieuw.');
-                return;
-            }
-        } else if (nameModal.targetId) {
-            renamePageDesign(nameModal.targetId, nameValue);
-        }
+        const ok = nameModal.mode === 'save'
+            ? savePageDesign(nameValue, docSettings) !== null
+            : !nameModal.targetId || renamePageDesign(nameModal.targetId, nameValue);
+        if (!ok) { setNameError(DESIGNS_FULL_TEXT); return; }
         setNameModal(null);
         refresh();
     };
 
+    // The name step replaces the list inside the same card: a second ModalShell would also
+    // catch Escape and close both at once.
     return (
-        <ModalShell onClose={onClose} ariaLabel="Pagina-ontwerp sjablonen" maxWidth={420}>
-            <div style={S.body}>
-                <h2 style={S.title}>Pagina-ontwerp sjablonen</h2>
-                <p style={S.hintText}>Bewaar de opmaak van dit blad (koptekst, voettekst, lettertypes, afbeeldingen…) als sjabloon en pas het toe op elk ander blad.</p>
-                <button type="button" style={S.saveBtn} onClick={handleSaveDesign}>
-                    <FloppyDisk size={14} /> Huidig ontwerp bewaren als sjabloon
-                </button>
-                {designs.length === 0 ? (
-                    <p style={S.hintText}>Nog geen sjablonen bewaard.</p>
-                ) : (
-                    <ul style={S.designList}>
-                        {designs.map((d) => (
-                            <li key={d.id} style={S.designRow}>
-                                <span style={S.designName}>{d.name}</span>
-                                <div style={S.designActions}>
-                                    <button type="button" style={S.miniBtn} onClick={() => handleApply(d)}>Toepassen</button>
-                                    <button type="button" style={S.iconBtn} onClick={() => handleRename(d)} aria-label="Hernoemen" title="Hernoemen"><PencilSimple size={13} /></button>
-                                    <button type="button" style={S.iconBtn} onClick={() => handleDelete(d)} aria-label="Verwijderen" title="Verwijderen"><Trash size={13} /></button>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-
-            {nameModal && (
-                <ModalShell
-                    onClose={() => setNameModal(null)}
-                    ariaLabel={nameModal.mode === 'save' ? 'Pagina-ontwerp bewaren' : 'Pagina-ontwerp hernoemen'}
-                    maxWidth={360}
-                >
-                    <form
-                        style={{ padding: 'var(--sp-5)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}
-                        onSubmit={(e) => { e.preventDefault(); handleNameConfirm(); }}
-                    >
-                        <h4 style={{ margin: 0, color: 'var(--text-main)' }}>
-                            {nameModal.mode === 'save' ? 'Naam voor dit pagina-ontwerp' : 'Nieuwe naam'}
-                        </h4>
+        <ModalShell onClose={nameModal ? () => setNameModal(null) : onClose} ariaLabel="Pagina-ontwerp sjablonen" maxWidth={420}>
+            {nameModal ? (
+                <form style={S.body} onSubmit={(e) => { e.preventDefault(); handleNameConfirm(); }}>
+                    <h2 style={S.title}>{nameModal.mode === 'save' ? 'Sjabloon bewaren' : 'Sjabloon hernoemen'}</h2>
+                    <div style={S.nameForm}>
+                        <label style={S.nameLabel} htmlFor="page-design-name">{nameModal.mode === 'save' ? 'Naam voor dit sjabloon' : 'Nieuwe naam'}</label>
                         <input
+                            id="page-design-name"
                             autoFocus
                             type="text"
                             value={nameValue}
@@ -91,12 +75,37 @@ export default function PageDesignsModal({ onClose }: Props) {
                             maxLength={80}
                             style={S.nameInput}
                         />
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--sp-2)' }}>
+                        {nameError && <p role="alert" style={S.errorText}>{nameError}</p>}
+                        <div style={S.nameActions}>
                             <button type="button" style={S.miniBtn} onClick={() => setNameModal(null)}>Annuleren</button>
-                            <button type="submit" style={S.saveBtn}>Bewaren</button>
+                            <button type="submit" style={{ ...S.saveBtn, marginBottom: 0 }}>Bewaren</button>
                         </div>
-                    </form>
-                </ModalShell>
+                    </div>
+                </form>
+            ) : (
+                <div style={S.body}>
+                    <h2 style={S.title}>Pagina-ontwerp sjablonen</h2>
+                    <p style={S.hintText}>Bewaar de vormgeving van dit blad (koptekst, voettekst, opdrachttitels, witruimte, lettergrootte, afbeeldingen) als sjabloon en pas ze toe op een ander blad. De oefeningen gaan niet mee.</p>
+                    <button type="button" style={S.saveBtn} onClick={() => openName('save', '')}>
+                        <FloppyDisk size={14} /> Huidig ontwerp bewaren als sjabloon
+                    </button>
+                    {designs.length === 0 ? (
+                        <p style={S.hintText}>Nog geen sjablonen bewaard.</p>
+                    ) : (
+                        <ul style={S.designList}>
+                            {designs.map((d) => (
+                                <li key={d.id} style={S.designRow}>
+                                    <span style={S.designName} title={d.name}>{d.name}</span>
+                                    <div style={S.designActions}>
+                                        <button type="button" style={S.miniBtn} onClick={() => handleApply(d)}>{applied === d.id ? 'Toegepast' : 'Toepassen'}</button>
+                                        <button type="button" style={S.iconBtn} onClick={() => openName('rename', d.name, d.id)} aria-label={`${d.name} hernoemen`} title="Hernoemen"><PencilSimple size={13} /></button>
+                                        <button type="button" style={S.iconBtn} onClick={() => handleDelete(d)} aria-label={`${d.name} verwijderen`} title="Verwijderen"><Trash size={13} /></button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             )}
         </ModalShell>
     );
@@ -106,8 +115,12 @@ const S = {
     body: { padding: 'var(--sp-5)' } as React.CSSProperties,
     title: { margin: '0 0 var(--sp-3)', fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-main)', letterSpacing: '-0.01em' } as React.CSSProperties,
     hintText: { fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: '0 0 var(--sp-3)', lineHeight: 1.4 } as React.CSSProperties,
-    saveBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: 'var(--text-sm)', fontWeight: 600, borderRadius: 'var(--radius-sm)', cursor: 'pointer', border: 'none', background: 'var(--accent)', color: '#fff', marginBottom: 'var(--sp-3)' } as React.CSSProperties,
+    errorText: { fontSize: 'var(--text-xs)', color: 'var(--danger)', margin: 0, lineHeight: 1.4 } as React.CSSProperties,
+    saveBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: 'var(--text-sm)', fontWeight: 600, borderRadius: 'var(--radius-sm)', cursor: 'pointer', border: 'none', background: 'var(--accent)', color: 'var(--accent-on)', marginBottom: 'var(--sp-3)' } as React.CSSProperties,
+    nameForm: { display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' } as React.CSSProperties,
+    nameLabel: { fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-main)' } as React.CSSProperties,
     nameInput: { padding: '8px 10px', fontSize: 'var(--text-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--separator)', background: 'var(--bg-surface)', color: 'var(--text-main)' } as React.CSSProperties,
+    nameActions: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--sp-2)' } as React.CSSProperties,
     designList: { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' } as React.CSSProperties,
     designRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-2)', padding: '6px 8px', borderRadius: 'var(--radius-xs)', background: 'var(--bg-surface-2)' } as React.CSSProperties,
     designName: { fontSize: 'var(--text-sm)', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as React.CSSProperties,

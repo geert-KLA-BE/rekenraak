@@ -1,0 +1,59 @@
+import { REGISTRY } from '../config/exerciseRegistry';
+import type { MathBlock } from './math/types';
+import { tutorCarries } from './oefenen/tutorPayload';
+import type { HandigStrategy, StepLine } from './math/workedSteps';
+import { MAB_TYPE_IDS, mabAllowed, mabFitsScreen, mabOnlyApplies } from './steps/mabSteps';
+
+// The one rule for every place that offers worked steps (answer key, stappenhulp QR, Oefenmodus):
+// a sum has steps only when its type's strategy returns them under that block's own settings,
+// so a compenseren or tienvoud preset never gets rijgen steps anywhere.
+export function stepsFor(typeId: string, ex: unknown, constraints: unknown): StepLine[] | null {
+    if (!ex) return null;
+    return REGISTRY[typeId]?.steps?.(ex, (constraints ?? {}) as Record<string, unknown>) ?? null;
+}
+
+// A sum without steps that MAB can still show (3 + 4, 7 − 3 in leerjaar 1–3, MAB on, not on a phone): [] = the picture
+// alone (StepsPanel, StepsView); null = no help. Never on the answer key, which reads stepsFor.
+export function mabOnlyFor(typeId: string, ex: unknown, constraints: unknown, ctx: { grade?: number; noMab?: boolean }): StepLine[] | null {
+    return MAB_TYPE_IDS.includes(typeId) && mabAllowed(ctx) && mabFitsScreen() && mabOnlyApplies(ex, constraints) ? [] : null;
+}
+
+// What the pupil gets after a fout or on "Hoe los ik dit op?": the steps, else the MAB picture alone, else nothing.
+export function stepsOrMabFor(typeId: string, ex: unknown, constraints: unknown, ctx: { grade?: number; noMab?: boolean }): StepLine[] | null {
+    return stepsFor(typeId, ex, constraints) ?? mabOnlyFor(typeId, ex, constraints, ctx);
+}
+
+// The handig rekenen strategies a pupil may view for this sum (empty when none fits); grade = the pupil's leerjaar when known.
+export function handigFor(typeId: string, ex: unknown, constraints: unknown, grade?: number): HandigStrategy[] {
+    if (!ex) return [];
+    return REGISTRY[typeId]?.handig?.(ex, (constraints ?? {}) as Record<string, unknown>, { grade }) ?? [];
+}
+
+export function exercisesOf(block: MathBlock): unknown[] {
+    const field = REGISTRY[block.typeId]?.exerciseField;
+    const list = field ? (block as unknown as Record<string, unknown>)[field] : null;
+    return Array.isArray(list) ? list : [];
+}
+
+// At least one sum on the block has worked steps: what decides whether a steps option is shown at all.
+export function blockHasSteps(block: MathBlock): boolean {
+    if (!REGISTRY[block.typeId]?.steps) return false;
+    return exercisesOf(block).some(ex => stepsFor(block.typeId, ex, block.constraints) !== null);
+}
+
+// The stappenhulp page reads hoofdrekenen sums and every type with a tutor codec, so a QR is offered only where one of those has steps.
+export function blockHasTutorSteps(block: MathBlock): boolean {
+    if (!REGISTRY[block.typeId]?.steps) return false;
+    return exercisesOf(block).some(ex => tutorCarries(block.typeId, ex, block.constraints) && stepsFor(block.typeId, ex, block.constraints) !== null);
+}
+
+export type SolutionStepsLevel = 'uit' | 'basis' | 'alle';
+
+// The answer-key steps level a block shows: its own choice wins, else the sheet-wide
+// docSettings.solutionStepsAll (absent = 'uit'), and only on blocks whose type has steps.
+export function effectiveSolutionSteps(block: MathBlock, docSettings?: { solutionStepsAll?: SolutionStepsLevel } | null): SolutionStepsLevel {
+    const own = (block.constraints as { solutionSteps?: SolutionStepsLevel } | undefined)?.solutionSteps;
+    if (own) return own;
+    const sheet = docSettings?.solutionStepsAll ?? 'uit';
+    return sheet !== 'uit' && blockHasSteps(block) ? sheet : 'uit';
+}

@@ -1,8 +1,8 @@
 import { useWorksheetStore, type RegionStyle } from '../../store/useWorksheetStore';
 import { STYLE_BOUNDS } from '../../config/printPalette';
-import { ANSWER_SPACE_DEFAULT_PX } from '../viewer/BlockWidthContext';
-import FontStyleFields from './FontStyleFields';
+import FontStyleFields, { Field } from './FontStyleFields';
 import { TEXT_FONT_OPTIONS } from '../../config/fontOptions';
+import { ANSWER_SPACE_DEFAULT_PX } from '../viewer/BlockWidthContext';
 
 // Look-and-feel controls for one printed region. These used to live in a "Stijl
 // aanpassen" modal with its own miniature preview; the three regions map exactly onto
@@ -11,10 +11,14 @@ import { TEXT_FONT_OPTIONS } from '../../config/fontOptions';
 export type StyleRegion = 'header' | 'titel' | 'footer';
 
 const REGION_KEY = { header: 'headerCustom', titel: 'titelCustom', footer: 'footerCustom' } as const;
-// Each region gets its own independent font-family field.
-const FONT_FAMILY_KEY = { header: 'fontFamilyHeader', footer: 'fontFamilyFooter', titel: 'fontFamilyTitel' } as const;
 // Sizes the sheet falls back to when a region carries no custom style.
 const DEFAULT_SIZE: Record<StyleRegion, number> = { header: 22, titel: 16, footer: 9 };
+// Each region has its own face (DocSettings.fontFamily*), independent of the opdrachttekst.
+const FONT_KEY = { header: 'fontFamilyHeader', titel: 'fontFamilyTitel', footer: 'fontFamilyFooter' } as const;
+// The title and the opdracht line print bold until the teacher says otherwise.
+// Three pickers can sit in one inspector tab, so each names its region
+const FONT_LABEL: Record<StyleRegion, string> = { header: 'Lettertype koptekst', titel: 'Lettertype titel', footer: 'Lettertype voettekst' };
+const DEFAULT_BOLD: Record<StyleRegion, boolean> = { header: true, titel: true, footer: false };
 
 export default function RegionStyleFields({ region }: { region: StyleRegion }) {
     const docSettings = useWorksheetStore((s) => s.docSettings);
@@ -24,16 +28,15 @@ export default function RegionStyleFields({ region }: { region: StyleRegion }) {
     const cur: RegionStyle = docSettings[REGION_KEY[region]] ?? {};
     const patch = (p: Partial<RegionStyle>) => updateDocSettings({ [REGION_KEY[region]]: { ...cur, ...p } });
     const reset = () => updateDocSettings({ [REGION_KEY[region]]: {} });
-    const fontFamilyKey = FONT_FAMILY_KEY[region];
 
     return (
         <>
             <FontStyleFields
+                fontFamily={{ label: FONT_LABEL[region], value: docSettings[FONT_KEY[region]], options: TEXT_FONT_OPTIONS, onChange: (v) => updateDocSettings({ [FONT_KEY[region]]: v }) }}
                 fontSize={{ label: 'Tekengrootte', value: cur.fontSize ?? DEFAULT_SIZE[region], min: bounds.fontMin, max: bounds.fontMax, onChange: (v) => patch({ fontSize: v }) }}
-                fontFamily={{ label: 'Lettertype', value: docSettings[fontFamilyKey] ?? TEXT_FONT_OPTIONS[0].value, options: TEXT_FONT_OPTIONS, onChange: (v) => updateDocSettings({ [fontFamilyKey]: v }) }}
                 color={cur.color} onColorChange={(v) => patch({ color: v })}
                 background={cur.background} onBackgroundChange={(v) => patch({ background: v })}
-                bold={cur.bold} onBoldChange={(v) => patch({ bold: v })}
+                bold={cur.bold ?? DEFAULT_BOLD[region]} onBoldChange={(v) => patch({ bold: v })}
                 italic={cur.italic} onItalicChange={(v) => patch({ italic: v })}
                 underline={cur.underline} onUnderlineChange={(v) => patch({ underline: v })}
             />
@@ -71,8 +74,10 @@ export function ResetAllStylesButton() {
             showScores: false, opdrachtTitelStyle: 'regular', showDividers: false,
             headerStyle: 'geen', titlePosition: 'center', titleFieldsGap: 16, titleFieldsVerticalGap: undefined,
             headerContentGap: 12, blockSpacing: 12, numberBlocks: true, bodyFontScale: 1, answerSpace: ANSWER_SPACE_DEFAULT_PX,
-            headerCustom: undefined, titelCustom: undefined, footerCustom: undefined, oefeningenCustom: undefined,
-            headerVeldenCustom: undefined,
+            headerCustom: undefined, titelCustom: undefined, footerCustom: undefined,
+            headerVeldenCustom: undefined, oefeningenCustom: undefined,
+            fontFamilyText: undefined, fontFamilyMath: undefined, fontFamilyHeader: undefined,
+            fontFamilyTitel: undefined, fontFamilyHeaderVelden: undefined, fontFamilyFooter: undefined,
         });
         blocks.forEach((blk) => {
             if (blk.constraints?.bodyFontScale !== undefined || blk.constraints?.answerSpace !== undefined) {
@@ -88,15 +93,6 @@ export function ResetAllStylesButton() {
         >
             Alle stijlen terugzetten
         </button>
-    );
-}
-
-function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
-    return (
-        <div style={{ marginBottom: 'var(--sp-4)' }}>
-            <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-muted)', marginBottom: 'var(--sp-2)' }}>{label}</label>
-            {children}
-        </div>
     );
 }
 

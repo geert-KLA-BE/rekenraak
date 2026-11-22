@@ -9,12 +9,12 @@
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <title>Over RekenRaak — gratis werkbladen wiskunde</title>
-  <meta name="description" content="RekenRaak: gratis wiskundewerkbladen voor de lagere school. Geen account, geen paywall, alles blijft in je browser. Open source (AGPL)." />
+  <meta name="description" content="Gratis werkbladen wiskunde en oefenen en spelen voor leerlingen in de lagere school. Geen account, geen paywall. Open source (AGPL)." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://www.rekenraak.be/about.html" />
   <meta property="og:type" content="article" />
   <meta property="og:title" content="Over RekenRaak — gratis werkbladen wiskunde" />
-  <meta property="og:description" content="Gratis wiskundewerkbladen voor de lagere school, in je browser, zonder account. Open source en voor altijd gratis." />
+  <meta property="og:description" content="Gratis werkbladen en oefenen en spelen voor leerlingen, in je browser, zonder account. Open source en voor altijd gratis." />
   <meta property="og:url" content="https://www.rekenraak.be/about.html" />
   <meta property="og:locale" content="nl_BE" />
   <meta property="og:image" content="https://www.rekenraak.be/favicon-96x96.png" />
@@ -34,7 +34,7 @@
       "isAccessibleForFree": true,
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
       "license": "https://www.gnu.org/licenses/agpl-3.0.txt",
-      "description": "RekenRaak is een gratis werkbladgenerator voor wiskunde in het lager onderwijs. Stel oefeningen samen uit getallenkennis, bewerkingen, meten en metend rekenen en meetkunde, kies de moeilijkheidsgraad en druk af of bewaar als pdf.",
+      "description": "RekenRaak is een gratis werkbladgenerator voor wiskunde in het lager onderwijs. Stel oefeningen samen uit getallenkennis, bewerkingen, meten en metend rekenen en meetkunde, kies de moeilijkheidsgraad en druk af of bewaar als pdf. Leerlingen oefenen en spelen er ook zelf.",
       "author": { "@type": "Person", "name": "RareGoudvis", "url": "https://github.com/RareGoudvis" }
     }
   </script>
@@ -48,6 +48,7 @@
           <a class="seg-btn" href="/about.html" aria-current="page" aria-pressed="true">Over</a>
           <a class="seg-btn" href="/faq.html">Vragen</a>
           <a class="seg-btn" href="/oefeningen.html">Oefeningen</a>
+          <a class="seg-btn" href="/handleiding.html">Handleiding</a>
         </nav>
       </div>
       <div class="site-nav-scroll">
@@ -70,6 +71,7 @@
 
     <header class="mac-vibrant topbar site-topbar">
       <span class="site-topbar-spacer"></span>
+      <a class="site-btn-secondary" href="/bord.html">Bordmodus</a>
       <a class="site-btn-primary" href="/">Open RekenRaak</a>
     </header>
 
@@ -86,6 +88,13 @@
         wat er op papier komt — wat je op het scherm ziet, is exact wat je afdrukt. Er is geen
         aparte pdf-motor: je drukt af of bewaart als pdf via de ingebouwde printfunctie van je
         browser.
+      </p>
+      <p>
+        Ook leerlingen kunnen er zelf mee aan de slag. Op <a href="/kind.html">rekenraak.be/kind.html</a>
+        kiezen ze hun leerjaar en een onderwerp, en oefenen ze of spelen ze een van de 18 rekenspelletjes.
+        Met Oefenmodus deel je een oefensessie met een link, en een QR-code onderaan je blad laat leerlingen
+        elke som stap voor stap bekijken. Alles zonder account. Hoe het werkt, staat in de
+        <a href="/handleiding.html#zelf-oefenen">handleiding</a>.
       </p>
       <p>
         Het bouwmodel zit in drie kolommen naast elkaar:
@@ -154,8 +163,8 @@
       </p>
       <p>
         De volledige lijst met een voorbeeld per oefening staat op de <a href="/oefeningen.html">Oefeningen</a>-pagina;
-        hoe je alles precies gebruikt (afdrukken, bewaren, differentiëren…) staat bij
-        <a href="/faq.html">Vragen</a>.
+        hoe je alles precies gebruikt staat stap voor stap in de <a href="/handleiding.html">Handleiding</a>,
+        losse vragen (afdrukken, bewaren, differentiëren…) bij <a href="/faq.html">Vragen</a>.
       </p>
 
       <h2 id="hoe-werkt-het">Hoe werkt het?</h2>
@@ -205,6 +214,23 @@
       </p>
       <p>
         De code werd mede geschreven met <a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude Code</a>.
+        Enkele verbeteringen (bestanden bewaren, lettertypes, sjablonen, plaatswaardekolommen, MAB tot 9&#8239;999)
+        zijn overgenomen uit de <a href="https://github.com/geert-KLA-BE/rekenraak" target="_blank" rel="noopener noreferrer">fork van Geert Van de Velde</a>. Dank!
+      </p>
+      <p id="muziek">
+        De achtergrondmuziek in de spelletjes (alleen hoorbaar met de knop op "Geluid en muziek") komt van
+        <a href="https://opengameart.org/" target="_blank" rel="noopener noreferrer">OpenGameArt</a>. De makers gaven
+        hun nummers vrij als publiek domein (<a href="https://creativecommons.org/publicdomain/zero/1.0/deed.nl" target="_blank" rel="noopener noreferrer">CC0</a>).
+        Dank aan Zane Little Music, Kistol, HydroGene, KiluaBoy, ChristmasSongs, TAD, Trex0n, RandomMind,
+        Komiku en cynicmusic. Titels en bronnen staan in de <a href="/spelen/music/CREDITS.md">lijst met muziek</a>.
+      </p>
+      <p id="fotos">
+        De grappige dierenfoto's in het spel Verborgen prent komen uit de
+        <a href="https://www.comedywildlifephoto.com/" target="_blank" rel="noopener noreferrer">Nikon Comedy Wildlife Photography Awards</a>.
+        Het auteursrecht blijft bij de fotografen.
+        Dank aan Harry Walker, Geert Weggen, Martina Gebert, Petr Sochman, Miroslav Srb, Jagdeep Rajput,
+        Jason Moore, Otter Kwek, Tzahi Finkelstein, Kingston Tam, Ralph Robinson en Mark Meth-Cohn.
+        Titels en bronnen staan in de <a href="/spelen/prent/CREDITS.md">lijst met foto's</a>.
       </p>
       <p>
         De code staat volledig open op <a href="https://github.com/RareGoudvis/rekenraak" target="_blank" rel="noopener noreferrer">GitHub</a>

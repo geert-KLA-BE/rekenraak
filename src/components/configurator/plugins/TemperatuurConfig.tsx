@@ -13,7 +13,6 @@ export default function TemperatuurConfig({ block }: Props) {
     const {
         variant = 'kleuren',
         includeNegatives = false,
-        perRow = 4,
         mode1 = 'gekleurd',
         mode2 = 'getal',
     } = c;
@@ -40,7 +39,7 @@ export default function TemperatuurConfig({ block }: Props) {
                     <SettingLabel text={`${t.label}:`} info="Wat er op deze thermometer gegeven is (kleur, getal of beide)." />
                     <div style={styles.buttonGroup}>
                         {MODES.map(m => (
-                            <button key={m.val} onClick={() => set(t.key, m.val)} style={styles.radioBtn(t.value === m.val)}>{m.label}</button>
+                            <button key={m.val} onClick={() => set(t.key, m.val)} aria-pressed={t.value === m.val} style={styles.radioBtn(t.value === m.val)}>{m.label}</button>
                         ))}
                     </div>
                 </div>
@@ -50,20 +49,27 @@ export default function TemperatuurConfig({ block }: Props) {
             <div style={styles.section}>
                 <SettingLabel text="Negatieve temperaturen:" info="Of er ook temperaturen onder nul mogen voorkomen." />
                 <div style={styles.buttonGroup}>
-                    <button onClick={() => set('includeNegatives', false)} style={styles.radioBtn(!includeNegatives)}>Nee (0…25°)</button>
-                    <button onClick={() => set('includeNegatives', true)} style={styles.radioBtn(includeNegatives)}>Ja (−15…25°)</button>
+                    <button onClick={() => set('includeNegatives', false)} aria-pressed={!includeNegatives} style={styles.radioBtn(!includeNegatives)}>Nee (0…25°)</button>
+                    <button onClick={() => set('includeNegatives', true)} aria-pressed={!!includeNegatives} style={styles.radioBtn(includeNegatives)}>Ja (−15…25°)</button>
                 </div>
             </div>
+        </div>
+    );
+}
 
-            {/* PER ROW — hidden for verschil (the viewer renders verschil in a fixed 2 columns) */}
-            {variant !== 'verschil' && (
-                <div style={styles.section}>
-                    <SettingLabel text={`Per rij: ${perRow}`} info="Hoeveel thermometers er naast elkaar staan." />
-                    <input type="range" min="2" max="4" step="1" value={perRow}
-                        onChange={(e) => set('perRow', Number(e.target.value))}
-                        style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
-                </div>
-            )}
+// ── Differentiatie: how many thermometers stand side by side.
+// Mounted by Inspector through EXERCISE_UI['temperatuur'].StyleConfig.
+export function TemperatuurStyleConfig({ block }: Props) {
+    const [c, patch] = useConstraints<TemperatuurConstraints>(block);
+    const { variant = 'kleuren', perRow = 4 } = c;
+    // Hidden for verschil: the viewer renders verschil in a fixed 2 columns.
+    if (variant === 'verschil') return null;
+    return (
+        <div style={{ ...styles.section, marginTop: '12px' }}>
+            <SettingLabel text={`Per rij: ${perRow}`} info="Hoeveel thermometers er naast elkaar staan." />
+            <input type="range" min="2" max="4" step="1" value={perRow}
+                onChange={(e) => patch({ perRow: Number(e.target.value) })}
+                style={{ width: '100%', accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
         </div>
     );
 }

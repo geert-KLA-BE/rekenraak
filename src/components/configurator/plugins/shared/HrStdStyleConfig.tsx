@@ -4,38 +4,17 @@ import { F } from './fieldStyles';
 import ItemNumberingRow from './ItemNumberingRow';
 import type { MathBlock } from '../../../../services/math/types';
 import type { AddSubConstraints } from '../../../../services/math/constraintTypes';
+import { blockHasSteps, effectiveSolutionSteps } from '../../../../services/stepsAvailability';
 
-/**
- * The Differentiatie rows shared by the four hoofdrekenen leaves (optellen, aftrekken,
- * vermenigvuldigen, delen). One file rather than four copies: the rows are identical and
- * only the fraction-difficulty block is +/−-only, which is what the two exported variants
- * below select. Mounted by Inspector through EXERCISE_UI[typeId].StyleConfig.
- */
-function HrStdStyleConfig({ block, withFractionDifficulty }: { block: MathBlock; withFractionDifficulty: boolean }) {
+// The Differentiatie rows shared by the four hoofdrekenen leaves, mounted through
+// EXERCISE_UI[typeId].StyleConfig (the answer-key rows are HrSolutionConfig below). The + − breuk
+// difficulty (gelijknamig / ongelijknamig) is content, so it moved to the Oefeningen tab's Breuken
+// block (addition/RationalSettings).
+function HrStdStyleConfig({ block }: { block: MathBlock }) {
     const [c, patch] = useConstraints<AddSubConstraints>(block);
     const updateBlockLayout = useWorksheetStore((s) => s.updateBlockLayout);
     return (
         <>
-            {/* ── Moeilijkheidsgraad (rational optellen/aftrekken) ── */}
-            {withFractionDifficulty && c.numberType === 'rational' && (
-                <>
-                    <label style={{ ...F.label, marginTop: '12px' }}>Moeilijkheidsgraad</label>
-                    <div style={F.optionCol}>
-                        {([
-                            { val: 'same',       label: 'Gelijknamige breuken' },
-                            { val: 'one_step',   label: 'Ongelijknamige breuken (eenvoudig)' },
-                            { val: 'multi_step', label: 'Ongelijknamige breuken (moeilijk)' },
-                        ] as const).map(({ val, label }) => (
-                            <button key={val}
-                                onClick={() => patch({ fractionDifficulty: val })}
-                                style={{ ...F.radioBtn((c.fractionDifficulty ?? 'same') === val), justifyContent: 'flex-start', textAlign: 'left' }}>
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-                </>
-            )}
-
             {/* ── Compenseren-preset: tussenstap aan/uit ── */}
             {c.preset === 'compenseren' && (
                 <>
@@ -62,15 +41,15 @@ function HrStdStyleConfig({ block, withFractionDifficulty }: { block: MathBlock;
             {/* Puntoefeningen (a + . = c) staan per definitie op één korte lijn — geen layoutkeuze. */}
             {c.equationType !== 'puntoefening' && (
                 <>
-                    <label style={{ ...F.label, marginTop: '12px' }}>Scaffolding</label>
+                    <label style={{ ...F.label, marginTop: '12px' }}>Schrijfruimte</label>
                     <div className="seg-group">
-                        <button onClick={() => updateBlockLayout(block.id, 'inline-short')} className="seg-btn" aria-pressed={(block.layoutPreset ?? 'inline-short') === 'inline-short'}>Kort</button>
-                        <button onClick={() => updateBlockLayout(block.id, 'inline-long')}  className="seg-btn" aria-pressed={(block.layoutPreset ?? 'inline-short') === 'inline-long'}>Lang</button>
-                        <button onClick={() => updateBlockLayout(block.id, 'stepped')}      className="seg-btn" aria-pressed={(block.layoutPreset ?? 'inline-short') === 'stepped'}>Stappen</button>
+                        <button onClick={() => updateBlockLayout(block.id, 'inline-short')} className="seg-btn" aria-pressed={(block.layoutPreset ?? 'inline-short') === 'inline-short'}>Korte lijn</button>
+                        <button onClick={() => updateBlockLayout(block.id, 'inline-long')}  className="seg-btn" aria-pressed={(block.layoutPreset ?? 'inline-short') === 'inline-long'}>Lange lijn</button>
+                        <button onClick={() => updateBlockLayout(block.id, 'stepped')}      className="seg-btn" aria-pressed={(block.layoutPreset ?? 'inline-short') === 'stepped'}>Onder elkaar</button>
                     </div>
                     {(block.layoutPreset ?? 'inline-short') === 'stepped' && (
                         <div style={{ marginTop: '8px' }}>
-                            <label style={F.label}>Aantal stappenlijnen: {block.steppedLines ?? 3}</label>
+                            <label style={F.label}>Aantal lijnen: {block.steppedLines ?? 3}</label>
                             <input
                                 type="range" min="1" max="10" step="1"
                                 style={F.range}
@@ -85,12 +64,38 @@ function HrStdStyleConfig({ block, withFractionDifficulty }: { block: MathBlock;
     );
 }
 
-/** optellen + aftrekken: fractions can be un-like, so they get the difficulty row. */
 export function AddSubStyleConfig({ block }: { block: MathBlock }) {
-    return <HrStdStyleConfig block={block} withFractionDifficulty />;
+    return <HrStdStyleConfig block={block} />;
 }
 
-/** vermenigvuldigen + delen: same rows minus the fraction-difficulty choice. */
 export function MulDivStyleConfig({ block }: { block: MathBlock }) {
-    return <HrStdStyleConfig block={block} withFractionDifficulty={false} />;
+    return <HrStdStyleConfig block={block} />;
+}
+
+// Verbetersleutel rows for the hoofdrekenen leaves (EXERCISE_UI[typeId].SolutionConfig): they only change the key.
+export function HrSolutionConfig({ block }: { block: MathBlock }) {
+    const [, patch] = useConstraints<AddSubConstraints>(block);
+    // Pressed = what the key prints, so a sheet-wide level shows here until the block picks its own.
+    const stepLevel = effectiveSolutionSteps(block, useWorksheetStore((s) => s.docSettings));
+    // Only offered when some exercise on the block has a strategy (today: optellen by rijgen).
+    const hasSteps = blockHasSteps(block);
+    if (!hasSteps) return null;
+    return (
+        <>
+            {/* ── Tussenstappen in de verbetersleutel ── */}
+            <label style={{ ...F.label, marginTop: '12px' }}>Stappen in de verbetersleutel</label>
+            <div className="seg-group">
+                {([
+                    { key: 'uit', label: 'Uit' },
+                    { key: 'basis', label: 'Basis' },
+                    { key: 'alle', label: 'Alle' },
+                ] as const).map(({ key, label }) => (
+                    <button key={key} className="seg-btn" aria-pressed={stepLevel === key}
+                        onClick={() => patch({ solutionSteps: key })}>
+                        {label}
+                    </button>
+                ))}
+            </div>
+        </>
+    );
 }

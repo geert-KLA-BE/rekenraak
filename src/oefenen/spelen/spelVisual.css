@@ -1,0 +1,110 @@
+/* Content pictures in the games (SpelVisual.tsx): a sign with a clock face, the face on a target. */
+.spel-sign-has-pic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  white-space: normal;
+}
+.spel-sign-pic { display: inline-flex; align-items: center; justify-content: center; flex: none; }
+/* A face on the sign: at least 96 px, more on a big screen. */
+.spel-sign-pic.is-klok { width: clamp(96px, 19vmin, 160px); height: clamp(96px, 19vmin, 160px); }
+.spel-sign-text { display: inline-block; }
+/* A breuk picture fills the box it gets; on the sign at least 120 px (elf- and twaalfden need the room). */
+.spel-breuk { display: block; width: 100%; height: 100%; }
+.spel-breuk-pair { display: flex; gap: var(--sp-3); }
+.spel-sign-pic.is-breuk { width: clamp(120px, 24vmin, 200px); height: clamp(120px, 24vmin, 200px); }
+
+/* Hoe los ik dit op? for a pack question: its picture with the part that matters marked, and the tip. */
+.spel-help-pic.is-klok { width: clamp(140px, 30vmin, 240px); height: clamp(140px, 30vmin, 240px); flex: none; }
+.spel-help-pic.is-breuk .spel-breuk { width: clamp(120px, 26vmin, 220px); height: clamp(120px, 26vmin, 220px); }
+.spel-help-pic.is-digitaal { font-size: var(--kiosk-text-xl); font-weight: 700; }
+.spel-help-tip {
+  margin: 0;
+  max-width: 34ch;
+  font-size: var(--kiosk-text-lg);
+  font-weight: 700;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* The end screen's foutjes table: a small face beside the question or as the answer. */
+.spel-end-pic { display: inline-flex; vertical-align: middle; margin-inline-end: var(--sp-2); }
+.spel-end-pic.is-klok, .spel-end-pic.is-breuk { width: 64px; height: 64px; }
+
+/* A sign line (SpelLine) wraps only between its parts: a sum, "€ 7,50" or "6 cm" never breaks inside. */
+.spel-line-chunk { white-space: nowrap; }
+/* A sentence on a sign (the tekst pack) reads in the pupil font, its numbers, € and the slot in the sheet's number font. */
+.spel-line-chunk.is-word, .spel-line-gap { font-family: var(--kid-font); }
+.spel-line-num { font-family: var(--font-sheet-math); }
+
+/* A getallenrij / patroon as number tiles (SpelRij): one row, the open tile dashed; is-fold = two even rows on a
+   narrow screen, is-two = two rows everywhere (big numbers). Sizes follow the sign's own font. */
+.spel-rij {
+  display: inline-grid;
+  grid-auto-flow: column;
+  justify-content: center;
+  gap: .22em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.spel-rij.is-two { grid-auto-flow: row; grid-template-columns: repeat(var(--rij-half), auto); }
+@media (max-width: 640px) {
+  .spel-rij.is-fold { grid-auto-flow: row; grid-template-columns: repeat(var(--rij-half), auto); }
+}
+.spel-rij-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.45em;
+  padding: .06em .26em;
+  border: var(--kid-line) solid var(--spel-ink);
+  border-radius: .28em;
+  background: var(--kid-key);
+  line-height: 1.15;
+}
+.spel-rij-tile.is-open { border-style: dashed; background: var(--kid-pick); }
+.spel-rij-tile.is-filled { padding: 0; border-style: solid; background: var(--kiosk-ok-soft); }
+.spel-rij-tile.is-filled > * { padding: .06em .26em; }
+/* The end screen's table and the help: the same tiles, at the text's size. */
+.spel-end-errors .spel-rij, .spel-help-question .spel-rij { font-size: .9em; }
+
+/* A breuk in a line or on a face (SpelText): stacked teller over noemer, as on the sheet; the slash stays for aria. */
+.spel-frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 .08em;
+  font-size: .72em;
+  line-height: 1.05;
+}
+.spel-frac-n { padding: 0 .12em; border-bottom: .09em solid currentColor; }
+.spel-frac-bar { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* In the narrow foutjes table a sentence may wrap between its words; a sum or a measure (4 u 45 min) never breaks. */
+.spel-end-errors .spel-line-chunk.is-word:not(.is-whole) { white-space: normal; }
+/* A phrase on a target (SpelChoiceFace): its words may wrap, and a long number word at its soft hyphen ("honderd-tallen"). */
+.spel-face-text .spel-line-chunk.is-word:not(.is-whole) { white-space: normal; }
+
+/* A keypad skin's sign (SpelSignBox): the box spans the skin's column and is the container the font is fitted to; the sign
+   keeps the skin's look, its font = the skin's size or less, so the longest line (--sign-chars number-font characters,
+   a digit ≈ .62em) fits inside its border and padding. A sentence (is-wrap) wraps between its words instead. */
+.spel-sign-box {
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+.spel-sign-box > .spel-sign-fit {
+  box-sizing: border-box;
+  max-width: 100%;
+  /* --sign-inset = the sign's own padding and border (a skin with a slimmer sign sets less); --sign-min = the floor
+     (12px; half a phone in Touwtrekken allows less for a leerjaar 6 sum). */
+  font-size: max(var(--sign-min, 12px), min(var(--sign-max, clamp(28px, 6vmin, 52px)), calc((100cqi - var(--sign-inset, calc(2 * var(--sp-5) + 2 * var(--spel-line) + 2 * var(--sp-2)))) / (var(--sign-chars, 12) * .62))));
+  white-space: nowrap;
+  text-align: center;
+}
+.spel-sign-box > .spel-sign-fit.is-wrap { white-space: normal; text-wrap: balance; }
+/* In a sign box a rij that may fold always takes its two even rows (the column is narrow on every screen). */
+.spel-sign-box .spel-rij.is-fold { grid-auto-flow: row; grid-template-columns: repeat(var(--rij-half), auto); }

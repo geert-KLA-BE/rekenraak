@@ -97,6 +97,8 @@ export function ScaledBlock({ scale, availableWidthPx = FULL_BLOCK_WIDTH_PX, fit
     const shrunk = applied < scale - 1e-4;
     return (
         <>
+            {/* customStyle = docSettings.oefeningenCustom: the viewers inherit its ink, fill and
+                B/I/U from here (text ink and SVG currentColor both follow `color`). */}
             <div ref={ref} data-scaled-inner="" data-scale={scale} style={overlayRegionStyle({
                 zoom: applied, width: '100%', display: 'block', position: 'static', overflow: 'visible',
                 // Per-block writing space: redeclares the sheet's --sheet-answer-h for this
@@ -108,7 +110,7 @@ export function ScaledBlock({ scale, availableWidthPx = FULL_BLOCK_WIDTH_PX, fit
             {shrunk && fitToWidth && (
                 <div className="no-print" style={{
                     position: 'absolute', top: '2px', right: 0, pointerEvents: 'none',
-                    fontSize: '10px', fontFamily: 'Azeret Mono, monospace', letterSpacing: '0.5px',
+                    fontSize: '10px', fontFamily: 'var(--font-sheet-math)', letterSpacing: '0.5px',
                     color: 'var(--accent-purple)',
                 }}>
                     verkleind tot {Math.round((applied / scale) * 100)} %

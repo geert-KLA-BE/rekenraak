@@ -1,6 +1,8 @@
 import { describe, test, expect } from 'vitest';
 import { numberToDutchWords } from '../services/splitsen/dutchWords';
 
+// Taken from Geert's fork; our spelling puts a space after "duizend" (Taalunie), so the
+// long case reads "…zesenvijftigduizend zevenhonderd…".
 describe('numberToDutchWords', () => {
     test.each([
         [0, 'nul'],
@@ -15,7 +17,7 @@ describe('numberToDutchWords', () => {
         [100000000, 'honderd miljoen'],
         [1000000000, 'een miljard'],
         [3000000000, 'drie miljard'],
-        [123456789, 'honderddrieëntwintig miljoen vierhonderdzesenvijftigduizendzevenhonderdnegenentachtig'],
+        [123456789, 'honderddrieëntwintig miljoen vierhonderdzesenvijftigduizend zevenhonderdnegenentachtig'],
     ])('%d -> %s', (n, expected) => {
         expect(numberToDutchWords(n)).toBe(expected);
     });

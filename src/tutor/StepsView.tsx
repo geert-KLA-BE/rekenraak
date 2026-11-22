@@ -1,0 +1,69 @@
+import { useState, type ReactNode } from 'react';
+import { formatMathNumber } from '../services/math/formatters';
+import type { HandigStrategy, StepLine } from '../services/math/workedSteps';
+import { StepLineView } from '../components/viewer/StepTokens';
+import type { RenderStepsVisual } from '../components/steps/stepsVisuals';
+
+// One sum's worked steps: nothing until the pupil asks, then one Basis line per tap (the newest
+// in blue). Alle stappen shows the whole solution at once, the optional in-between lines included
+// (owner, 2026-11-13: "so all steps truly are shown"). SYNC: oefenen StepsPanel.
+// Handig rekenen (compenseren, ontbinden) is an extra view; the standard steps stay the method.
+export default function StepsView({ sum, lines, handig = [], visual }: { sum: ReactNode; lines: StepLine[]; handig?: HandigStrategy[]; visual?: RenderStepsVisual }) {
+    const [revealed, setRevealed] = useState(0);
+    const [alle, setAlle] = useState(false);
+    const [showHandig, setShowHandig] = useState(false);
+    // No lines, only a picture (MAB for 3 + 4): each tap shows its next stage.
+    const pictureOnly = lines.length === 0 && !!visual?.stages;
+    const basisIdx = lines.flatMap((l, i) => (l.basis ? [i] : []));
+    const total = pictureOnly ? visual!.stages! : basisIdx.length;
+    const upto = revealed > 0 && !pictureOnly ? basisIdx[Math.min(revealed, total) - 1] : -1;
+    const done = total > 0 && revealed >= total;
+    // Once every Basis line is out, Alle also shows optional lines after the last one.
+    const last = done ? lines.length - 1 : upto;
+    const shown = lines.map((l, i) => ({ l, i })).filter(({ l, i }) => (alle ? i <= last : i <= upto && l.basis));
+
+    return (
+        <>
+            <div className="tutor-card">
+                <div className="tutor-sum">{sum}</div>
+                {visual?.(pictureOnly ? Math.min(revealed, total) : upto + 1)}
+                {shown.length > 0 ? (
+                    <ol className="tutor-lines" aria-live="polite">
+                        {shown.map(({ l, i }) => (
+                            <li key={i} className={`${i === upto ? 'is-new' : ''}${l.basis ? '' : ' is-extra'}`}><StepLineView line={l} fmt={formatMathNumber} /></li>
+                        ))}
+                    </ol>
+                ) : (!pictureOnly || revealed === 0) && (
+                    <p className="tutor-quiet">Probeer het eerst zelf op je blad. Lukt het niet? Tik op de knop.</p>
+                )}
+            </div>
+            {done
+                ? <p className="tutor-done">Klaar! Vergelijk met jouw blad.</p>
+                : <button type="button" className="tutor-btn tutor-btn-primary" onClick={() => setRevealed(r => r + 1)}>
+                    {revealed === 0 ? 'Toon de eerste stap' : 'Toon de volgende stap'}
+                </button>}
+            {/* The picture has no optional lines to switch on, so Alle stappen just jumps to the end. */}
+            {pictureOnly
+                ? !done && <button type="button" className="tutor-btn" onClick={() => setRevealed(total)}>Alle stappen</button>
+                : (
+                    <button type="button" className="tutor-btn" aria-pressed={alle} onClick={() => { if (!alle) setRevealed(total); setAlle(!alle); }}>
+                        {alle ? 'Alle stappen: aan' : 'Alle stappen: uit'}
+                    </button>
+                )}
+            {handig.length > 0 && (
+                <button type="button" className="tutor-btn" aria-pressed={showHandig} onClick={() => setShowHandig(h => !h)}>
+                    {showHandig ? 'Handig rekenen: aan' : 'Handig rekenen'}
+                </button>
+            )}
+            {showHandig && handig.map(h => (
+                <div key={h.name} className="tutor-card">
+                    <div className="tutor-sum">{h.name}</div>
+                    <ol className="tutor-lines">
+                        {h.lines.map((l, i) => <li key={i}><StepLineView line={l} fmt={formatMathNumber} /></li>)}
+                    </ol>
+                </div>
+            ))}
+            {revealed > 0 && <button type="button" className="tutor-btn tutor-btn-quiet" onClick={() => setRevealed(0)}>Opnieuw beginnen</button>}
+        </>
+    );
+}

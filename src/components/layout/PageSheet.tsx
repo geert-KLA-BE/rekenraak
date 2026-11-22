@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { WarningCircle } from '@phosphor-icons/react';
+import type { RowCut } from '../../services/layout/pagePacker';
 
 // One printed page: its own header, a 4-column grid body, its own footer.
 //
@@ -37,6 +38,8 @@ interface Props {
     /** Report one cell's rendered height and the block's intrinsic content width; the
         packer prefers both over its own per-type estimates. */
     onCellMeasure?: (blockId: string, width: number, px: number, intrinsicWidthPx?: number, reflows?: boolean) => void;
+    /** Stappenhulp QR on only: where each cell's rows start, for a split line between two rows. */
+    onRowsMeasure?: (blockId: string, width: number, cuts: RowCut[], total: number) => void;
     /** Blank px under the page's skyline, as the PACKER sees it for the width of the next
         page's first block. Given, it beats the measured tail: the packer knows exactly
         where that block would land, the DOM can only say where the ink stops. */
@@ -44,6 +47,9 @@ interface Props {
     /** Offer to split the block that starts the NEXT page, when this page ends in a big
         blank tail. Absent when there is no next page or its first block cannot be cut. */
     onSplitNext?: (tailPx: number, anchor: DOMRect) => void;
+    /** Whether the next block has a real split point in `tailPx` of free space; without it the
+        hint would promise a split the popover cannot offer. Absent = no check. */
+    canSplitNext?: (tailPx: number) => boolean;
     /** The two ways out of "this block is taller than a page", offered by the banner on the
         block it actually measured: shrink it to fit, or cut it in two. */
     onFitBlock?: (blockId: string) => void;
@@ -99,6 +105,24 @@ function probeIntrinsicWidth(cell: HTMLElement): { px: number; reflows?: boolean
 // in the 2026-09-13 height audit). `.print-block` carries the printed chrome (16px padding
 // + 1px border top and bottom) INSIDE its box and 4px margins outside it, and all of that
 // prints, so the block's own cost is its offsetHeight plus those margins.
+// Where the block's rows start below the cell's top (layout px), each with the exercises above it.
+// Only one FragmentableGrid in the block counts: its rows are row-major, so the counts are the sums' order.
+function rowCuts(cell: HTMLElement): { cuts: RowCut[]; total: number } | undefined {
+    const rows = Array.from(cell.querySelectorAll<HTMLElement>('.print-row'));
+    if (rows.length < 2 || rows.some(r => r.parentElement !== rows[0].parentElement)) return undefined;
+    const rect = cell.getBoundingClientRect();
+    // Screen px per layout px, off the cell itself: the cell sits outside ScaledBlock's zoom, so offsetWidth is page px.
+    const zoom = rect.width / cell.offsetWidth || 1;
+    const top = rect.top;
+    const cuts: RowCut[] = [];
+    let total = 0;
+    rows.forEach((row, k) => {
+        if (k > 0) cuts.push({ px: (row.getBoundingClientRect().top - top) / zoom, count: total });
+        total += row.children.length;
+    });
+    return { cuts, total };
+}
+
 function ownHeight(cell: HTMLElement): number {
     const inner = cell.firstElementChild as HTMLElement | null;
     if (!inner) return cell.offsetHeight;
@@ -108,8 +132,9 @@ function ownHeight(cell: HTMLElement): number {
 
 export default function PageSheet({
     index, total, header, footer, contentGap, blockSpacing, columnGap, children, onBackgroundClick,
-    onHeaderClick, onFooterClick, onBodyMeasure, onCellMeasure, onSplitNext, onFitBlock, onSplitBlock,
-    tailPx: packedTailPx, imagesBehind, imagesInFront,
+    onHeaderClick, onFooterClick, onBodyMeasure, onCellMeasure, onRowsMeasure, onSplitNext, onFitBlock, onSplitBlock,
+    tailPx: packedTailPx,
+    canSplitNext, imagesBehind, imagesInFront,
 }: Props) {
     const bodyRef = useRef<HTMLDivElement>(null);
     // The positioning layer for the cells. The body itself carries the side padding, and
@@ -145,17 +170,23 @@ export default function PageSheet({
             // The tail itself comes from rects divided back by the sheet zoom, so it is in
             // layout px whatever the sheet is scaled to.
             const bodyRect = el.getBoundingClientRect();
-            const zoom = (bodyRect.width / (PAGE_W_PX - 2 * 53)) || 1;
+            // Screen px per layout px off the body itself (offsetWidth is unzoomed and includes
+            // the side padding, like the rect), so the margins never enter the ratio.
+            const zoom = (bodyRect.width / el.offsetWidth) || 1;
             let lastBottom = bodyRect.top;
             let tallestCell = 0;
             let tallestId: string | null = null;
             for (const child of Array.from(canvas.children) as HTMLElement[]) {
                 const blockId = child.dataset.blockId;
                 const width = Number(child.dataset.width);
+                // The QR split line and a cut block's lower window are ink on the page, not blocks.
+                if (child.dataset.sheetExtra) lastBottom = Math.max(lastBottom, child.getBoundingClientRect().bottom);
                 if (!blockId || !(width > 0)) continue;
                 const own = ownHeight(child);
                 const probe = probeIntrinsicWidth(child);
                 onCellMeasure?.(blockId, width, own, probe?.px, probe?.reflows);
+                const rows = onRowsMeasure && rowCuts(child);
+                if (rows) onRowsMeasure(blockId, width, rows.cuts, rows.total);
                 if (own > tallestCell) { tallestCell = own; tallestId = blockId; }
                 // The deepest point of the skyline: where the page's ink actually stops,
                 // which is what both the tail hint and the overflow banner are about.
@@ -219,7 +250,7 @@ export default function PageSheet({
                 {/* Never automatic: the page says what it sees and the teacher decides.
                     Absolutely positioned (see .page-tail-hint) and outside the canvas, so
                     it is never mistaken for a cell by the measure pass. */}
-                {onSplitNext && (packedTailPx ?? tailPx) > TAIL_HINT_PX && (
+                {onSplitNext && (packedTailPx ?? tailPx) > TAIL_HINT_PX && (canSplitNext?.(packedTailPx ?? tailPx) ?? true) && (
                     <div
                         className="no-print page-tail-hint"
                         onClick={(e) => e.stopPropagation()}

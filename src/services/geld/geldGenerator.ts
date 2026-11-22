@@ -1,4 +1,5 @@
 import type { MathBlock, GeldExercise, GeldDenomination, GeldDenominationType, GeldWisselExercise, GeldTeruggevenExercise } from '../math/types';
+import { countOefeningen, repeatNote } from '../generationNotes';
 import type { GeldConstraints, GeldWisselConstraints, GeldTeruggevenConstraints } from '../math/constraintTypes';
 
 // All denominations in cents, largest first
@@ -19,6 +20,7 @@ const DENOMINATION_CATALOGUE: { valueCents: number; type: GeldDenominationType }
 ];
 
 const MAX_ITEMS_PER_EXERCISE = 12;
+const MAX_DRAW_ATTEMPTS = 200;
 
 function breakdownAmount(
     amountCents: number,
@@ -46,7 +48,7 @@ function breakdownAmount(
         totalItems += maxCount;
     }
 
-    // If remaining > 0, we couldn't break it down perfectly — just ignore remainder
+    // remaining > 0 = not drawable within the cap; the caller redraws the amount
     return result;
 }
 
@@ -59,6 +61,10 @@ function seededRng(seed: number) {
 }
 
 export function generateGeldExercises(block: MathBlock): GeldExercise[] {
+    return generateGeldExercisesNoted(block).items;
+}
+
+export function generateGeldExercisesNoted(block: MathBlock): { items: GeldExercise[]; note: string | null } {
     const {
         maxGetal = 10,
         format = 'euros',
@@ -74,6 +80,15 @@ export function generateGeldExercises(block: MathBlock): GeldExercise[] {
     const allowedSorted = [...allowedSet].filter(v => v <= maxCents).sort((a, b) => a - b);
     const minCents = allowedSorted[0] ?? 5;
 
+    // reachable[k]: k * 5 cents can be paid exactly with the ticked set (unbounded coin change).
+    const reachable = new Uint8Array(Math.floor(maxCents / 5) + 1);
+    reachable[0] = 1;
+    for (let k = 1; k < reachable.length; k++) {
+        for (const v of allowedSorted) if (v % 5 === 0 && k * 5 >= v && reachable[k - v / 5]) { reachable[k] = 1; break; }
+    }
+    let widened = 0;      // herkennen: exercises paid with coins the teacher did not tick
+    let unpayable = 0;    // tekenen: exercises whose amount the ticked set cannot make
+
     const exercises: GeldExercise[] = [];
     // Seeded from Math.random, NOT Date.now(): the DEV harnesses replace Math.random with
     // a seeded PRNG (window.__rekenraak.seed) and a wall-clock seed made these generators
@@ -81,19 +96,47 @@ export function generateGeldExercises(block: MathBlock): GeldExercise[] {
     const rng = seededRng(Math.floor(Math.random() * 0x10000));
 
     for (let i = 0; i < n; i++) {
-        // Pick random amount, rounded to nearest allowed min denomination
-        const raw = Math.floor(rng() * (maxCents - minCents + 1)) + minCents;
-        const amountCents = Math.round(raw / minCents) * minCents;
+        let finalAmount = 0;
+        let denominations: GeldDenomination[] = [];
+        // Redraw when the breakdown cannot reach the amount (item cap, or a denomination set
+        // greedy cannot pay exactly): the key must equal what is drawn on the sheet.
+        for (let attempt = 0; attempt < MAX_DRAW_ATTEMPTS; attempt++) {
+            // Pick random amount, rounded to nearest allowed min denomination
+            const raw = Math.floor(rng() * (maxCents - minCents + 1)) + minCents;
+            const amountCents = Math.round(raw / minCents) * minCents;
 
-        // For 'euros' format: round to nearest 100 (whole euros) if no cents denominations allowed
-        const hasCents = allowedSorted.some(v => v < 100);
-        const finalAmount = (format === 'euros' && !hasCents)
-            ? Math.max(100, Math.round(amountCents / 100) * 100)
-            : amountCents;
+            // 'euros' format asks for a whole-euro answer, so the amount itself must be whole
+            // (was: only without cent coins, and the key then rounded the cents away).
+            finalAmount = format === 'euros'
+                ? Math.max(100, Math.round(amountCents / 100) * 100)
+                : amountCents;
 
-        const denominations: GeldDenomination[] = isTekenen
-            ? []  // Tekenen: student draws, we don't generate denominations
-            : breakdownAmount(finalAmount, allowedSet, rng);
+            if (isTekenen) {
+                // Tekenen: student draws, we don't generate denominations — but the amount must be drawable from the ticked set
+                const payable = finalAmount % 5 === 0 && finalAmount / 5 < reachable.length && reachable[finalAmount / 5] === 1;
+                if (payable) break;
+                if (attempt === MAX_DRAW_ATTEMPTS - 1) unpayable++;
+                continue;
+            }
+            denominations = breakdownAmount(finalAmount, allowedSet, rng);
+            const drawnCents = denominations.reduce((sum, d) => sum + d.valueCents * d.count, 0);
+            if (drawnCents === finalAmount) break;
+            if (attempt === MAX_DRAW_ATTEMPTS - 1) {
+                // Amount too big for the ticked coins within the item cap: the drawn money is the amount,
+                // as long as that is a real price (not 0, whole euros in euros format).
+                if (drawnCents > 0 && (format !== 'euros' || drawnCents % 100 === 0)) { finalAmount = drawnCents; break; }
+                // Impossible settings (nothing ticked, only bills above the max, 5c-only in euros): pay with
+                // the whole catalogue so the amount stays a real price, and say so in the note.
+                const wide = new Set(DENOMINATION_CATALOGUE.filter(d => d.valueCents <= Math.max(maxCents, 5)).map(d => d.valueCents));
+                let fixed = false;
+                for (let r = 0; r < MAX_DRAW_ATTEMPTS && !fixed; r++) {
+                    const retry = breakdownAmount(finalAmount, wide, rng);
+                    if (retry.reduce((sum, d) => sum + d.valueCents * d.count, 0) === finalAmount) { denominations = retry; fixed = true; }
+                }
+                widened++;
+                if (!fixed) finalAmount = drawnCents;
+            }
+        }
 
         exercises.push({
             id: `geld-${Date.now()}-${i}-${Math.floor(rng() * 9999)}`,
@@ -103,7 +146,10 @@ export function generateGeldExercises(block: MathBlock): GeldExercise[] {
         });
     }
 
-    return exercises;
+    const parts: string[] = [];
+    if (widened > 0) parts.push(`De gekozen coupures volstaan niet voor ${countOefeningen(widened)}; daarvoor zijn ook andere coupures gebruikt.`);
+    if (unpayable > 0) parts.push(`Bij ${countOefeningen(unpayable)} is het bedrag niet met de gekozen coupures te leggen.`);
+    return { items: exercises, note: parts.length ? parts.join(' ') : null };
 }
 
 export function generateGeldWisselExercises(block: MathBlock): GeldWisselExercise[] {
@@ -117,7 +163,8 @@ export function generateGeldWisselExercises(block: MathBlock): GeldWisselExercis
     }));
 }
 
-const BILL_DENOMINATIONS = [500, 1000, 2000, 5000, 10000, 20000, 50000];
+// What the customer can pay with: the bills, plus the €1 / €2 coins for the 'Tot €1' / 'Tot €2' ranges
+const PAY_DENOMINATIONS = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
 
 // Belgian prices are rounded to 5ct, so only multiples of 5 are used
 const CENTEN_POOLS: Record<string, number[]> = {
@@ -127,6 +174,10 @@ const CENTEN_POOLS: Record<string, number[]> = {
 };
 
 export function generateGeldTeruggevenExercises(block: MathBlock): GeldTeruggevenExercise[] {
+    return generateGeldTeruggevenExercisesNoted(block).items;
+}
+
+export function generateGeldTeruggevenExercisesNoted(block: MathBlock): { items: GeldTeruggevenExercise[]; note: string | null } {
     const {
         minPriceEuros = 1,
         maxPriceEuros = 49,
@@ -145,14 +196,17 @@ export function generateGeldTeruggevenExercises(block: MathBlock): GeldTeruggeve
     let attempts = 0;
     while (exercises.length < n && attempts < 20000) {
         attempts++;
-        const options = (payWithOptions as number[]).filter(v => BILL_DENOMINATIONS.includes(v));
+        const options = (payWithOptions as number[]).filter(v => PAY_DENOMINATIONS.includes(v));
         if (options.length === 0) break;
         const payWithCents = options[Math.floor(rng() * options.length)];
         const maxPriceForPayWith = Math.floor(payWithCents / 100) - 1;
         const effectiveMax = Math.min(maxPriceEuros, maxPriceForPayWith);
-        if (effectiveMax < minPriceEuros) continue;
+        if (effectiveMax < 0) continue;
+        // A €1 / €2 coin under the teacher's min price (default €1) lowers the floor: paying with
+        // €1 means a price under €1, otherwise the block would come out empty.
+        const effectiveMin = Math.min(minPriceEuros, effectiveMax);
 
-        const priceEuros = Math.floor(rng() * (effectiveMax - minPriceEuros + 1)) + minPriceEuros;
+        const priceEuros = Math.floor(rng() * (effectiveMax - effectiveMin + 1)) + effectiveMin;
         const centsPart = cenPool[Math.floor(rng() * cenPool.length)];
         const priceCents = priceEuros * 100 + centsPart;
         const key = `${priceCents}-${payWithCents}`;
@@ -175,12 +229,18 @@ export function generateGeldTeruggevenExercises(block: MathBlock): GeldTeruggeve
             isManuallyEdited: false,
         });
     }
-    return exercises;
+    // A narrow price/pay-with space (e.g. only €5 notes) runs out of distinct sums; repeat rather than fall short.
+    const distinct = exercises.length;
+    for (let i = 0; distinct > 0 && exercises.length < n; i++) {
+        exercises.push({ ...exercises[i % distinct], id: `geld-tg-${Date.now()}-${exercises.length}` });
+    }
+    return { items: exercises, note: repeatNote(exercises.length - distinct) };
 }
 
 export function formatAmount(amountCents: number, format: string): string {
-    if (format === 'euros') {
-        return `€${Math.round(amountCents / 100)}`;
+    // Whole-euro form only when there are no cents to lose (older sheets can hold cents here)
+    if (format === 'euros' && amountCents % 100 === 0) {
+        return `€${amountCents / 100}`;
     }
     const euros = Math.floor(amountCents / 100);
     const cents = amountCents % 100;

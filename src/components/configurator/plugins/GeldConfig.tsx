@@ -5,16 +5,16 @@ import { sharedPluginStyles as S } from './sharedPluginStyles';
 import type { MathBlock } from '../../../services/math/types';
 import { DENOMINATION_CATALOGUE, denominationLabel } from '../../../services/geld/geldGenerator';
 import PopupSelect from '../../ui/PopupSelect';
+import { useMaxPresets } from '../useMaxPresets';
 import SettingLabel from './SettingLabel';
 import type { GeldConstraints } from '../../../services/math/constraintTypes';
 
 export default function GeldConfig({ block }: { block: MathBlock }) {
     const [c, patch] = useConstraints<GeldConstraints>(block);
-    const isHerkennen = block.typeId === 'geld-herkennen';
+    const range = useMaxPresets(block);
 
     const set = (key: keyof GeldConstraints, val: unknown) => patch({ [key]: val } as Partial<GeldConstraints>);
     const maxGetal: number = c.maxGetal ?? 10;
-    const geldLayout: string = c.geldLayout ?? 'samen';
     const allowedDenominations: number[] = c.allowedDenominations ?? DENOMINATION_CATALOGUE.map(d => d.valueCents);
 
     const toggleDenom = (valueCents: number) => {
@@ -32,16 +32,16 @@ export default function GeldConfig({ block }: { block: MathBlock }) {
         <div style={S.container}>
 
             {/* ── Maximum getal ── */}
-            <div style={S.section}>
+            {range && <div style={S.section}>
                 <SettingLabel text="Maximum getal" info="Het grootste bedrag dat mag voorkomen." />
                 <PopupSelect
                     clampToLowest
                     value={maxGetal}
-                    options={[10, 20, 100, 1000].map(v => ({ value: v, label: `Tot ${v}` }))}
+                    options={range.presets.map(v => ({ value: v, label: `Tot ${v}` }))}
                     onChange={(v) => set('maxGetal', v)}
                     ariaLabel="Maximum getal"
                 />
-            </div>
+            </div>}
 
             {/* ── Toegestane coupures ── */}
             <div style={S.section}>
@@ -71,22 +71,11 @@ export default function GeldConfig({ block }: { block: MathBlock }) {
                     ))}
                 </div>
             </div>
-
-            {/* ── Geldlayout (herkennen only) ── */}
-            {isHerkennen && (
-                <div style={S.section}>
-                    <SettingLabel text="Geldlayout" info="Toont het geld samen of gescheiden per soort." />
-                    <div style={S.buttonGroup}>
-                        <button style={S.radioBtn(geldLayout !== 'gescheiden')} onClick={() => set('geldLayout', 'samen')}>Samen</button>
-                        <button style={S.radioBtn(geldLayout === 'gescheiden')} onClick={() => set('geldLayout', 'gescheiden')}>Gescheiden</button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
 
-// ── Differentiatie: money notation + the answer/draw box (herkennen + tekenen).
+// ── Differentiatie: money notation + the answer/draw box (herkennen + tekenen) + how herkennen lays out the money.
 // Mounted by Inspector through EXERCISE_UI[typeId].StyleConfig.
 export function GeldStyleConfig({ block }: { block: MathBlock }) {
     const [c, patch] = useConstraints<GeldConstraints>(block);
@@ -96,6 +85,7 @@ export function GeldStyleConfig({ block }: { block: MathBlock }) {
     const gShowVoorbeelden: boolean = c.showVoorbeelden ?? false;
     const gVoorbeeldTypes: number[] = c.voorbeeldTypes ?? [];
     const gAllowedDenominations: number[] = c.allowedDenominations ?? [];
+    const geldLayout: string = c.geldLayout ?? 'samen';
 
     const toggleVoorbeeld = (valueCents: number) => {
         const next = gVoorbeeldTypes.includes(valueCents)
@@ -128,8 +118,8 @@ export function GeldStyleConfig({ block }: { block: MathBlock }) {
                 <>
                     <label style={{ ...F.label, marginTop: '12px' }}>Tekenvak</label>
                     <div className="seg-group">
-                        <button className="seg-btn" aria-pressed={gScaffolding === 'eenvoudig'} onClick={() => patch({ scaffolding: 'eenvoudig' })}>Eenvoudig</button>
-                        <button className="seg-btn" aria-pressed={gScaffolding === 'verdeeld'} onClick={() => patch({ scaffolding: 'verdeeld' })}>Verdeeld (€ / cent)</button>
+                        <button className="seg-btn" aria-pressed={gScaffolding === 'eenvoudig'} onClick={() => patch({ scaffolding: 'eenvoudig' })}>Eén vak</button>
+                        <button className="seg-btn" aria-pressed={gScaffolding === 'verdeeld'} onClick={() => patch({ scaffolding: 'verdeeld' })}>Vak voor € en cent</button>
                     </div>
                 </>
             )}
@@ -156,6 +146,17 @@ export function GeldStyleConfig({ block }: { block: MathBlock }) {
                             </span>
                         );
                     })}
+                </div>
+            )}
+
+            {/* ── Geldlayout (herkennen only) ── */}
+            {isGeldHerkennen && (
+                <div style={{ ...S.section, marginTop: '12px' }}>
+                    <SettingLabel text="Geldlayout" info="Toont het geld samen of gescheiden per soort." />
+                    <div style={S.buttonGroup}>
+                        <button aria-pressed={geldLayout !== 'gescheiden'} style={S.radioBtn(geldLayout !== 'gescheiden')} onClick={() => patch({ geldLayout: 'samen' })}>Samen</button>
+                        <button aria-pressed={geldLayout === 'gescheiden'} style={S.radioBtn(geldLayout === 'gescheiden')} onClick={() => patch({ geldLayout: 'gescheiden' })}>Gescheiden</button>
+                    </div>
                 </div>
             )}
         </>

@@ -1,0 +1,237 @@
+/* Spelen: the game shell (top bar, stage, help, end screen) and the picker's mode + game tiles.
+   Skins bring their own CSS; the tokens below are shared so every game draws in one style:
+   flat fills, a thick dark outline, a light sky. */
+.oefen-body {
+  --spel-ink: var(--text-main);
+  --spel-line: 4px;
+  --spel-sky: color-mix(in srgb, var(--accent-bewerkingen) 22%, var(--kiosk-paper));
+  --spel-sky-low: color-mix(in srgb, var(--accent-bewerkingen) 10%, var(--kiosk-paper));
+  --spel-cloud: var(--kiosk-paper);
+  --spel-grass: color-mix(in srgb, var(--accent-metendrekenen) 75%, var(--kiosk-paper));
+  --spel-star: var(--mab-e);
+  /* Fills for game objects (balloons, blocks), in order. */
+  --spel-fill-0: var(--accent-getallenkennis);
+  --spel-fill-1: var(--accent-bewerkingen);
+  --spel-fill-2: var(--mab-e);
+  --spel-fill-3: var(--accent-metendrekenen);
+  --spel-fill-4: var(--accent-meetkunde);
+  --spel-fill-5: var(--accent-vraagstukken);
+  /* Thumb targets in a game stay well above WCAG's 44 px. */
+  --spel-tap: 48px;
+}
+
+/* ── Touwtrekken's two-mode choice ───────────────────────────────────────── */
+.spel-modes { max-width: 640px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.spel-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 140px;
+}
+.spel-mode svg { width: 48px; height: 48px; }
+
+/* ── Game shell ───────────────────────────────────────────────────────────── */
+/* Doubled class: wins over the kiosk's narrow-phone bar (which drops a title this bar does not have). */
+.kiosk-topbar.spel-topbar { grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); }
+.spel-progress { white-space: nowrap; }
+.spel-score {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-family: var(--font-sheet-math);
+  font-size: var(--kiosk-text-lg);
+  font-weight: 700;
+}
+.spel-score svg { color: var(--spel-star); stroke: var(--spel-ink); }
+.spel-help-btn { min-height: var(--spel-tap); white-space: nowrap; }
+/* Doubled class: the game's 48 px target wins over .kiosk-btn's own size and padding. */
+.kiosk-btn.spel-sound-btn {
+  min-width: var(--spel-tap);
+  min-height: var(--spel-tap);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.spel-sound-btn svg { width: 24px; height: 24px; }
+.spel-sound-btn[aria-pressed='true'] svg { color: var(--accent); }
+/* Geluid + muziek: the speaker a little smaller with a note beside it, the button keeps its size. */
+.spel-sound-btn.is-muziek svg { width: 20px; height: 20px; }
+.spel-sound-btn.is-muziek .spel-sound-note { width: 15px; height: 15px; margin-left: -4px; translate: 0 -6px; }
+.spel-help-btn svg { color: var(--accent); }
+/* A phone in portrait: the icon alone, its name stays for screen readers through the button text. */
+@media (max-width: 560px) {
+  .spel-help-btn span,
+  .spel-topbar [data-stop='arm'] span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+}
+
+.spel-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  /* clip: a focused or clicked game object never scrolls the stage (hidden still scrolls programmatically). */
+  overflow: clip;
+}
+.spel-loading { padding: var(--sp-6); text-align: center; }
+
+/* ── Hoe los ik dit op? ───────────────────────────────────────────────────── */
+.spel-help {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-3);
+  background: color-mix(in srgb, var(--spel-ink) 35%, transparent);
+}
+.spel-help-card {
+  width: min(100%, 980px);
+  height: min(100%, 620px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: var(--spel-line) solid var(--spel-ink);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-3);
+}
+.spel-help-sum {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  overflow: auto;
+}
+.spel-help-title { margin: 0; font-size: var(--kiosk-text-lg); }
+.spel-help-question {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-md);
+  background: var(--kiosk-paper);
+  color: var(--kiosk-ink);
+  font-size: var(--kiosk-text-xl);
+  font-weight: 700;
+}
+/* SYNC: kiosk.css .kiosk-card-col > .steps-visual: the MAB blocks get the left half of the card. */
+.spel-help-sum > .steps-visual {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-3);
+  background: var(--kiosk-paper);
+  border-radius: var(--radius-md);
+}
+.spel-help-sum > .steps-visual > * { width: 100%; margin: 0; }
+.spel-help-sum .sv-mab-svg { max-height: 44vh; max-width: calc(var(--mab-w, 240px) * 3.4); }
+.spel-help-steps { position: relative; min-height: 0; }
+/* The lead line is a fout in Oefenen (red); here the pupil asked for help, so it reads as plain text. */
+.spel-help-steps .kiosk-steps-lead { color: var(--text-main); }
+/* No steps for this sum yet: a short tip, a small card. */
+.spel-help-card.is-tip { width: min(100%, 560px); height: auto; grid-template-columns: 1fr; text-align: center; }
+.spel-help-card.is-tip .kiosk-steps { position: static; padding: 0; background: none; }
+@media (max-width: 760px), (max-height: 520px) {
+  .spel-help-card { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); height: 100%; }
+  .spel-help-sum > .steps-visual { display: none; }
+}
+
+/* ── Keypad skins (SpelKeypad) ────────────────────────────────────────────── */
+.spel-keypad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(100%, 360px);
+}
+/* Game keys stay at least --spel-tap (48 px), a little above the kiosk's 44. */
+.spel-keypad .kiosk-keypad { grid-template-rows: repeat(4, minmax(var(--spel-tap), 88px)); }
+.spel-keypad .kiosk-key { min-height: var(--spel-tap); }
+.spel-keypad-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--kiosk-field-h);
+  font-size: var(--kiosk-text-xl);
+}
+
+/* A long sign line (spelChoice signSize: the tekst pack, leerjaar 6 sums): every skin's one-line sign
+   (.xx-sign, never its -sign-answer part or a picture sign) gets smaller and may wrap inside the stage. */
+.spel-stage[data-sign="long"] [class*="-sign"]:not([class*="-sign-"], .spel-sign-fit) {
+  max-width: min(100%, 92vw);
+  font-size: clamp(18px, 3.6vmin, 34px);
+  white-space: normal;
+  text-wrap: balance;
+  text-align: center;
+}
+/* A zombie's sign stands in its narrow column: it may grow past it (centred on the pole) to --zb-sign-w; its font fits
+   the longest line (--sign-chars, Zombies useSignChars; a long sum breaks before "="). */
+.spel-stage[data-sign="long"] .zb-sign.is-front {
+  width: max-content;
+  max-width: var(--zb-sign-w);
+  font-size: max(13px, min(clamp(18px, 3.6vmin, 34px), calc((var(--zb-sign-w) - 2 * var(--sp-3) - 2 * var(--spel-line)) / (var(--sign-chars, 10) * .62))));
+}
+
+/* ── End screen ───────────────────────────────────────────────────────────── */
+.spel-end-stats {
+  margin: 0;
+  width: min(100%, 720px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+.spel-end-stats > div {
+  padding: var(--sp-2) var(--sp-3);
+  border: 2px solid var(--separator);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+.spel-end-stats dt { color: var(--text-muted); font-size: var(--kiosk-text); }
+.spel-end-stats dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  font-family: var(--font-sheet-math);
+  font-size: var(--kiosk-text-xl);
+  font-weight: 700;
+}
+.spel-end-stats dd svg { color: var(--spel-star); }
+@media (max-width: 560px) { .spel-end-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.spel-end-errors { width: min(100%, 720px); }
+/* No red in a game: the given answer is only quieter. */
+.spel-end .spel-end-errors td.is-given { color: var(--text-muted); }
+.spel-end-main { min-height: 64px; min-width: min(100%, 320px); }
+.spel-end-clean { margin: 0; font-size: var(--kiosk-text-lg); font-weight: 700; color: var(--kiosk-ok); }
+.spel-end-record { margin: 0; font-size: var(--kiosk-text-lg); font-weight: 700; }
+.spel-end-more { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); }
+
+/* ── Pre-start options (SpelOptions) ──────────────────────────────────────── */
+.spel-options { width: min(100%, 720px); display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); }
+.spel-options-title { margin: 0; font-size: var(--kiosk-text-xl); }
+.spel-options-thumb { width: min(100%, 300px); border: var(--kid-line) solid var(--kid-ink); border-radius: var(--kid-radius-sm); box-shadow: var(--kid-drop); }
+.spel-option { width: 100%; display: flex; flex-direction: column; gap: var(--sp-2); }
+.spel-option-label { margin: 0; font-size: var(--kiosk-text-lg); font-weight: 700; text-align: center; }
+.spel-option-choices { grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); }
+.spel-options-start { min-height: 64px; min-width: min(100%, 280px); }
+
+/* ── A skin's ending picture on the end screen (skins/*: Ending) ─────────── */
+.spel-ending {
+  position: relative;
+  width: min(100%, 560px);
+  height: clamp(130px, 26vh, 240px);
+  flex: 0 0 auto;
+  overflow: hidden;
+  overflow: clip;
+  border: var(--spel-line) solid var(--spel-ink);
+  border-radius: var(--radius-lg);
+  background: var(--spel-sky);
+}
+.spel-ending > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
